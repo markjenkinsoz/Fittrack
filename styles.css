@@ -725,6 +725,31 @@ h2.page-title {
   min-height: 44px;
 }
 .food-hit .name { font-weight: 650; display: block; }
+.food-hit .tag {
+  display: inline-block;
+  margin-bottom: 4px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--wo-dim);
+  color: var(--wo);
+  font-size: 0.72rem;
+  font-weight: 750;
+}
+.demo {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin: 8px 0;
+}
+.demo img {
+  width: 120px;
+  height: 90px;
+  border-radius: 10px;
+  background: var(--bg);
+  flex-shrink: 0;
+}
+.demo figcaption { display: flex; flex-direction: column; gap: 4px; font-size: 0.85rem; }
+.demo-link { color: var(--cal); font-weight: 700; }
 .food-hit .meta { color: var(--muted); font-size: 0.78rem; }
 .barcode-row {
   display: flex;
