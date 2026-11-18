@@ -1,7 +1,7 @@
 /* FitTrack service worker — network first, cache fallback for offline use.
    Asset URLs are relative to this script (the app directory), not the domain root,
    so the same list works at /Fittrack/ on GitHub Pages. */
-const CACHE = "fittrack-v2";
+const CACHE = "fittrack-v3";
 const ASSETS = [
   "./",
   "./index.html",
@@ -13,7 +13,7 @@ const ASSETS = [
   "./icons/icon-512.png",
   "./icons/icon-192-maskable.png",
   "./icons/icon-512-maskable.png",
-  "./data/foods.json",
+  "./data/foods/index.json",
   "./data/plans.json",
   "./vendor/zxing.min.js",
 ];
