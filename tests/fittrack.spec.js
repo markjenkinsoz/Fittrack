@@ -407,6 +407,8 @@ test.describe("FitTrack PWA", () => {
     expect(swRes.status()).toBe(200);
     const swText = await swRes.text();
     expect(swText).toContain("./index.html");
+    expect(swText).toContain("fittrack-v2");
+    expect(swText).not.toContain("fittrack-v1");
     expect(swText).not.toContain('"/index.html"');
     expect(swText).not.toContain("'/index.html'");
 
@@ -437,8 +439,312 @@ test.describe("FitTrack PWA", () => {
         "/Fittrack/icons/icon-512.png",
         "/Fittrack/icons/icon-192-maskable.png",
         "/Fittrack/icons/icon-512-maskable.png",
+        "/Fittrack/data/foods.json",
+        "/Fittrack/data/plans.json",
+        "/Fittrack/vendor/zxing.min.js",
       ])
     );
+
+    expect(errors, `JS errors: ${errors.join("\n")}`).toEqual([]);
+  });
+
+  test("searches USDA foods and mocked Open Food Facts brands", async ({ page }) => {
+    const errors = [];
+    page.on("pageerror", (err) => errors.push(String(err)));
+    page.on("console", (msg) => {
+      if (msg.type() === "error") errors.push(msg.text());
+    });
+    await page.route("**/world.openfoodfacts.org/**", async (route) => {
+      const url = route.request().url();
+      if (url.includes("/product/")) {
+        await route.fulfill({
+          contentType: "application/json",
+          body: JSON.stringify({
+            status: 1,
+            product: {
+              code: "012345678905",
+              product_name: "Greek Yogurt",
+              brands: "Yoplait",
+              serving_size: "150 g",
+              serving_quantity: 150,
+              nutriments: { "energy-kcal_serving": 120, proteins_serving: 15 },
+            },
+          }),
+        });
+        return;
+      }
+      if (url.includes("zzzznotfood")) {
+        await route.fulfill({ contentType: "application/json", body: JSON.stringify({ products: [] }) });
+        return;
+      }
+      await route.fulfill({
+        contentType: "application/json",
+        body: JSON.stringify({
+          products: [
+            {
+              code: "111",
+              product_name: "Protein Bar",
+              brands: "Clif",
+              serving_size: "68 g",
+              serving_quantity: 68,
+              nutriments: { "energy-kcal_serving": 250, proteins_serving: 10 },
+            },
+          ],
+        }),
+      });
+    });
+
+    await page.goto("/Fittrack/");
+    const foods = await page.request.get("/Fittrack/data/foods.json");
+    expect(foods.status()).toBe(200);
+    const body = await foods.json();
+    expect(body.f.length).toBeGreaterThan(2000);
+    expect(JSON.stringify(body).length).toBeLessThan(2 * 1024 * 1024);
+    expect(body.source).toMatch(/USDA FoodData Central/);
+
+    await page.getByRole("button", { name: "+ Add food" }).click();
+    await page.locator("#food-search").fill("bananas raw");
+    const hit = page.getByTestId("usda-results").getByRole("button").first();
+    await expect(hit).toContainText("Bananas, raw");
+    expect(Number(await hit.getAttribute("data-cal"))).toBe(105);
+    await hit.click();
+    await expect(page.getByTestId("serving-adjust")).toBeVisible();
+    await page.locator("#food-servings").fill("2");
+    await expect(page.locator("#food-cal")).toHaveValue("210");
+    await expect(page.locator("#food-pro")).toHaveValue("2.6");
+    await expect(page.locator("#food-grams")).toHaveValue("236");
+    await page.locator("#food-fav").check();
+    await page.getByRole("button", { name: "Add", exact: true }).click();
+    await expect(page.getByTestId("food-list")).toContainText("Bananas, raw");
+    await expect(page.getByTestId("food-list")).toContainText("210 cal");
+    await expect(page.getByTestId("quick-add")).toContainText("Bananas, raw");
+
+    await page.getByRole("button", { name: "+ Add food" }).click();
+    await page.locator("#food-search").fill("zzzznotfood");
+    await expect(page.getByTestId("usda-results")).toContainText("No common foods");
+    await expect(page.getByTestId("brand-status")).toContainText("No brand matches");
+    await page.locator("#food-search").fill("clif");
+    await expect(page.getByTestId("brand-results")).toContainText("Clif Protein Bar");
+    await page.getByTestId("brand-results").getByRole("button").first().click();
+    await expect(page.locator("#food-name")).toHaveValue("Clif Protein Bar");
+    await expect(page.locator("#food-cal")).toHaveValue("250");
+    await page.getByRole("button", { name: "Cancel" }).click();
+
+    expect(errors, `JS errors: ${errors.join("\n")}`).toEqual([]);
+  });
+
+  test("looks up a barcode and skips brand search while offline", async ({ page }) => {
+    const errors = [];
+    page.on("pageerror", (err) => errors.push(String(err)));
+    page.on("console", (msg) => {
+      if (msg.type() === "error") errors.push(msg.text());
+    });
+    await page.addInitScript(() => {
+      window.FitTrackBarcodeDetector = class {
+        async detect() {
+          return [{ rawValue: "012345678905" }];
+        }
+      };
+    });
+    await page.route("**/world.openfoodfacts.org/**", async (route) => {
+      await route.fulfill({
+        contentType: "application/json",
+        body: JSON.stringify({
+          status: 1,
+          product: {
+            code: "012345678905",
+            product_name: "Greek Yogurt",
+            brands: "Yoplait",
+            serving_size: "150 g",
+            serving_quantity: 150,
+            nutriments: { "energy-kcal_serving": 120, proteins_serving: 15 },
+          },
+        }),
+      });
+    });
+
+    await page.goto("/Fittrack/");
+    await page.evaluate(() => {
+      const canvas = document.createElement("canvas");
+      canvas.width = 32;
+      canvas.height = 32;
+      window.FitTrackFakeStream = canvas.captureStream(5);
+    });
+    await page.getByRole("button", { name: "+ Add food" }).click();
+    await page.getByRole("button", { name: "Scan barcode" }).click();
+    await expect(page.locator("#food-name")).toHaveValue("Yoplait Greek Yogurt", { timeout: 8000 });
+    await expect(page.locator("#food-cal")).toHaveValue("120");
+    await page.getByRole("button", { name: "Cancel" }).click();
+
+    await page.evaluate(() => {
+      Object.defineProperty(navigator, "onLine", { configurable: true, get: () => false });
+    });
+    await page.getByRole("button", { name: "+ Add food" }).click();
+    await page.locator("#food-search").fill("yogurt");
+    await expect(page.getByTestId("brand-status")).toContainText(/offline/i);
+    await expect(page.getByTestId("usda-results")).toContainText("Yogurt");
+    await page.locator("#food-barcode").fill("012345678905");
+    await page.getByRole("button", { name: "Look up" }).click();
+    await expect(page.getByTestId("barcode-status")).toContainText(/offline/i);
+
+    expect(errors, `JS errors: ${errors.join("\n")}`).toEqual([]);
+  });
+
+  test("uses the ZXing fallback when BarcodeDetector is missing", async ({ page }) => {
+    const errors = [];
+    page.on("pageerror", (err) => errors.push(String(err)));
+    await page.addInitScript(() => {
+      window.FitTrackForceZxing = true;
+    });
+    await page.goto("/Fittrack/");
+    await page.evaluate(() => {
+      const canvas = document.createElement("canvas");
+      canvas.width = 16;
+      canvas.height = 16;
+      window.FitTrackFakeStream = canvas.captureStream(5);
+    });
+    await page.getByRole("button", { name: "+ Add food" }).click();
+    await page.getByRole("button", { name: "Scan barcode" }).click();
+    await expect
+      .poll(() => page.evaluate(() => !!(window.ZXing && window.ZXing.BrowserMultiFormatReader)))
+      .toBe(true);
+    await expect(page.getByTestId("scan-status")).toContainText(/barcode|camera|type the barcode/i);
+    expect(errors, `JS errors: ${errors.join("\n")}`).toEqual([]);
+  });
+
+  test("tracks daily weight without dropping existing food logs", async ({ page, context }) => {
+    const errors = [];
+    page.on("pageerror", (err) => errors.push(String(err)));
+    page.on("console", (msg) => {
+      if (msg.type() === "error") errors.push(msg.text());
+    });
+    const today = dateKey();
+    const weights = {};
+    weights[addDays(today, -20)] = { lb: 184.0, note: "start", updatedAt: 1 };
+    weights[addDays(today, -10)] = { lb: 182.5, note: "", updatedAt: 2 };
+    weights[addDays(today, -1)] = { lb: 181.0, note: "yesterday", updatedAt: 3 };
+    await context.addInitScript((payload) => {
+      localStorage.setItem("fittrack-v1", JSON.stringify(payload));
+    }, {
+      version: 1,
+      settings: { calorieGoal: 2200, proteinGoal: 160 },
+      days: { [today]: { foods: [{ id: "keep-me", name: "Oatmeal", calories: 300, protein: 12, createdAt: 1 }] } },
+      favorites: [],
+      recents: [],
+      exerciseNames: [],
+      workouts: [],
+      weights,
+    });
+
+    await page.goto("/Fittrack/");
+    await expect(page.getByTestId("food-list")).toContainText("Oatmeal");
+    await expect(page.getByTestId("weight-today")).toContainText("Not logged");
+    await page.getByRole("button", { name: "Log weight" }).click();
+    await page.locator("#weight-lb").fill("180.5");
+    await page.locator("#weight-note").fill("morning");
+    await page.getByRole("button", { name: "Save weight" }).click();
+    await expect(page.getByTestId("weight-today")).toContainText("180.5");
+
+    await page.getByRole("tab", { name: "Weight" }).click();
+    await expect(page.getByTestId("weight-current")).toContainText("180.5");
+    await expect(page.getByTestId("weight-change")).toContainText("-3.5");
+    await expect(page.getByTestId("weight-chart")).toBeVisible();
+    await expect(page.getByTestId("weight-ma")).toBeVisible();
+    await expect(page.getByTestId("weight-list").locator(".food-row")).toHaveCount(4);
+
+    await page.getByRole("button", { name: "Log weight" }).click();
+    await page.locator("#weight-lb").fill("181.2");
+    await page.locator("#weight-note").fill("evening");
+    await page.getByRole("button", { name: "Save weight" }).click();
+    await expect(page.getByTestId("weight-list").locator(".food-row")).toHaveCount(4);
+    await expect(page.getByTestId("weight-current")).toContainText("181.2");
+    await expect(page.getByTestId("weight-list")).toContainText("evening");
+
+    await page.getByRole("button", { name: "90 days" }).click();
+    await expect(page.getByTestId("weight-chart")).toBeVisible();
+    await page.getByRole("button", { name: "1 year" }).click();
+    await page.getByRole("button", { name: "All" }).click();
+    await expect(page.getByTestId("weight-list").locator(".food-row")).toHaveCount(4);
+
+    await page.getByRole("tab", { name: "Settings" }).click();
+    await page.locator("#goal-weight").fill("175");
+    await page.locator("#goal-weight").blur();
+    await page.getByRole("tab", { name: "Weight" }).click();
+    await expect(page.getByText("Goal 175.0 lb")).toBeVisible();
+    await expect(page.getByTestId("weight-goal-line")).toHaveCount(1);
+
+    await page.getByRole("button", { name: "Edit weight " + addDays(today, -20) }).click();
+    await page.locator("#weight-note").fill("edited");
+    await page.getByRole("button", { name: "Save weight" }).click();
+    await expect(page.getByTestId("weight-list")).toContainText("edited");
+    page.once("dialog", (dialog) => dialog.accept());
+    await page.getByRole("button", { name: "Delete weight " + addDays(today, -20) }).click();
+    await expect(page.getByTestId("weight-list")).not.toContainText("edited");
+
+    await page.getByRole("tab", { name: "Settings" }).click();
+    const downloadPromise = page.waitForEvent("download");
+    await page.getByRole("button", { name: "Export backup" }).click();
+    const download = await downloadPromise;
+    const tmp = path.join(SCREEN_DIR, "..", "test-results", "weight-backup.json");
+    fs.mkdirSync(path.dirname(tmp), { recursive: true });
+    await download.saveAs(tmp);
+    const exported = JSON.parse(fs.readFileSync(tmp, "utf8"));
+    expect(exported.weights[today].lb).toBe(181.2);
+    expect(exported.settings.weightGoal).toBe(175);
+    expect(exported.days[today].foods[0].name).toBe("Oatmeal");
+
+    expect(errors, `JS errors: ${errors.join("\n")}`).toEqual([]);
+  });
+
+  test("starts a leveled home plan and suggests moving up", async ({ page }) => {
+    const errors = [];
+    page.on("pageerror", (err) => errors.push(String(err)));
+    page.on("console", (msg) => {
+      if (msg.type() === "error") errors.push(msg.text());
+    });
+    await page.goto("/Fittrack/");
+    await page.getByRole("tab", { name: "Workouts" }).click();
+    await page.getByRole("button", { name: "Home plans" }).click();
+    await expect(page.getByTestId("plan-disclaimer")).toContainText("doctor");
+    await expect(page.getByTestId("plan-disclaimer")).toContainText("abdominal surgery");
+    await expect(page.getByTestId("week-plan")).toContainText("Strength A");
+    await expect(page.getByTestId("week-plan")).toContainText("Rest");
+    await page.getByRole("button", { name: "Level 1" }).click();
+    await expect(page.getByTestId("level-summary")).toContainText("2 sets");
+    await page.getByRole("button", { name: "Open Strength A" }).click();
+    await expect(page.getByTestId("plan-cue").first()).not.toHaveText("");
+    await expect(page.getByRole("heading", { name: "Squat to a bench" })).toBeVisible();
+    await page.getByRole("button", { name: "Start this workout" }).click();
+    const easyCard = page.locator(".ex-card", { hasText: "Squat to a bench" });
+    await expect(easyCard.locator('input[data-act="set-reps"]')).toHaveCount(2);
+    await expect(easyCard.locator('input[data-act="set-reps"]').first()).toHaveValue("8");
+    await expect(easyCard).toContainText("Knees track over mid-foot");
+    await easyCard.locator('input[data-act="set-weight"]').first().fill("25");
+    await easyCard.locator('input[data-act="set-weight"]').first().blur();
+    await page.getByRole("button", { name: "Too easy" }).click();
+    await page.getByRole("button", { name: "Back to workouts" }).click();
+
+    await page.getByRole("button", { name: "Home plans" }).click();
+    await page.getByRole("button", { name: "Start Strength A" }).click();
+    await expect(page.locator(".ex-card", { hasText: "Squat to a bench" }).getByTestId("last-time")).toContainText("8×25");
+    await page.getByRole("button", { name: "Too easy" }).click();
+    await page.getByRole("button", { name: "Back to workouts" }).click();
+    await page.getByRole("button", { name: "Home plans" }).click();
+    await page.getByRole("button", { name: "Start Strength A" }).click();
+    await page.getByRole("button", { name: "Too easy" }).click();
+    await page.getByRole("button", { name: "Back to workouts" }).click();
+    await page.getByRole("button", { name: "Home plans" }).click();
+    await expect(page.getByTestId("level-up")).toContainText("Level 2");
+    await page.getByRole("button", { name: "Move to Level 2" }).click();
+    await expect(page.getByRole("button", { name: "Level 2" })).toHaveAttribute("aria-pressed", "true");
+
+    await page.getByRole("button", { name: "Level 5" }).click();
+    await page.getByRole("button", { name: "Open Strength A" }).click();
+    await expect(page.getByRole("heading", { name: "Double dumbbell squat" })).toBeVisible();
+    await page.getByRole("button", { name: "Start this workout" }).click();
+    const hardCard = page.locator(".ex-card", { hasText: "Double dumbbell squat" });
+    await expect(hardCard.locator('input[data-act="set-reps"]')).toHaveCount(4);
+    await expect(page.locator(".ex-card", { hasText: "Easy bike spin" })).toContainText("min");
 
     expect(errors, `JS errors: ${errors.join("\n")}`).toEqual([]);
   });

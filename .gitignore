@@ -1,3 +1,6 @@
 node_modules/
 test-results/
 playwright-report/
+tools/.cache/
+__pycache__/
+*.pyc
