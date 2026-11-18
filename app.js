@@ -722,7 +722,7 @@
       : `<span class="hint">Illustration only</span>`;
     const credit = demo.videoTitle ? `<span class="hint">${esc(demo.videoTitle)}</span>` : "";
     return `<figure class="demo" data-testid="exercise-demo">
-      <img src="${esc(demo.image)}" alt="" width="120" height="90" loading="lazy" />
+      <img src="${esc(demo.image)}" alt="${esc(demo.title)} start and finish" width="680" height="320" loading="lazy" />
       <figcaption>${video}${credit}</figcaption>
     </figure>`;
   }
