@@ -736,17 +736,14 @@ h2.page-title {
   font-weight: 750;
 }
 .demo {
-  display: flex;
-  gap: 10px;
-  align-items: center;
-  margin: 8px 0;
+  display: block;
+  margin: 8px 0 4px;
 }
 .demo img {
-  width: 120px;
-  height: 90px;
-  border-radius: 10px;
-  background: var(--bg);
-  flex-shrink: 0;
+  width: 100%;
+  height: auto;
+  border-radius: 12px;
+  background: transparent;
 }
 .demo figcaption { display: flex; flex-direction: column; gap: 4px; font-size: 0.85rem; }
 .demo-link { color: var(--cal); font-weight: 700; }

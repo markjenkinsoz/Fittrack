@@ -1,134 +1,184 @@
 {
-  "attribution": "Line drawings were created for FitTrack and are original. Demo links open YouTube videos that were checked with YouTube oEmbed on 2026-11-18. Some links are full routines that include the movement, not a single-move clip.",
+  "attribution": "Form diagrams were drawn for FitTrack. They are original filled illustrations, not copied photos. Demo links open YouTube videos checked with YouTube oEmbed on 2026-11-18. Some links are full routines that include the movement.",
   "demos": {
     "squat": {
-      "title": "squat",
+      "title": "Goblet squat",
       "image": "images/exercises/squat.svg",
       "video": "https://www.youtube.com/watch?v=sOUCmU27mjE",
       "videoTitle": "Whole Body Workout for Beginners",
       "videoBy": "OPEX Bristol"
     },
+    "air-squat": {
+      "title": "Squat to a bench",
+      "image": "images/exercises/air-squat.svg",
+      "video": "https://www.youtube.com/watch?v=sOUCmU27mjE",
+      "videoTitle": "Whole Body Workout for Beginners",
+      "videoBy": "OPEX Bristol"
+    },
     "bench": {
-      "title": "bench",
+      "title": "Dumbbell bench press",
       "image": "images/exercises/bench.svg"
     },
+    "floor-press": {
+      "title": "Dumbbell floor press",
+      "image": "images/exercises/floor-press.svg"
+    },
     "row": {
-      "title": "row",
+      "title": "One-arm dumbbell row",
       "image": "images/exercises/row.svg",
       "video": "https://www.youtube.com/watch?v=sOUCmU27mjE",
       "videoTitle": "Whole Body Workout for Beginners",
       "videoBy": "OPEX Bristol"
     },
     "hinge": {
-      "title": "hinge",
+      "title": "Dumbbell Romanian deadlift",
       "image": "images/exercises/hinge.svg",
       "video": "https://www.youtube.com/watch?v=ZEnWV4kguKc",
       "videoTitle": "How to do romanian deadlifts safely",
       "videoBy": "Jack Hanrahan Fitness"
     },
+    "kb-deadlift": {
+      "title": "Kettlebell deadlift",
+      "image": "images/exercises/kb-deadlift.svg",
+      "video": "https://www.youtube.com/watch?v=ZEnWV4kguKc",
+      "videoTitle": "How to do romanian deadlifts safely",
+      "videoBy": "Jack Hanrahan Fitness"
+    },
     "press": {
-      "title": "press",
+      "title": "Seated dumbbell press",
       "image": "images/exercises/press.svg"
     },
+    "half-kneel-press": {
+      "title": "Half-kneeling one-arm press",
+      "image": "images/exercises/half-kneel-press.svg"
+    },
     "dead-bug": {
-      "title": "dead bug",
+      "title": "Dead bug",
       "image": "images/exercises/dead-bug.svg",
       "video": "https://www.youtube.com/watch?v=99ewh8IACrA",
       "videoTitle": "Ultimate Ab & Core Workout: Bird Dog, Dead Bug, & Bridge",
       "videoBy": "Andrew's Fitness Training"
     },
+    "heel-slide": {
+      "title": "Heel slide",
+      "image": "images/exercises/heel-slide.svg",
+      "video": "https://www.youtube.com/watch?v=99ewh8IACrA",
+      "videoTitle": "Ultimate Ab & Core Workout: Bird Dog, Dead Bug, & Bridge",
+      "videoBy": "Andrew's Fitness Training"
+    },
     "figure4": {
-      "title": "figure4",
+      "title": "Figure-4 stretch",
       "image": "images/exercises/figure4.svg"
     },
     "bike": {
-      "title": "bike",
+      "title": "Recumbent bike",
       "image": "images/exercises/bike.svg"
     },
     "open-book": {
-      "title": "open book",
+      "title": "Open book rotation",
       "image": "images/exercises/open-book.svg"
     },
     "split": {
-      "title": "split",
+      "title": "Split squat",
       "image": "images/exercises/split.svg",
       "video": "https://www.youtube.com/watch?v=EAO2twIivhs",
       "videoTitle": "35 Min Strength Training at Home Full Body Workout with Dumbbells",
       "videoBy": "HASfit"
     },
+    "rfess": {
+      "title": "Rear-foot elevated split squat",
+      "image": "images/exercises/rfess.svg",
+      "video": "https://www.youtube.com/watch?v=EAO2twIivhs",
+      "videoTitle": "35 Min Strength Training at Home Full Body Workout with Dumbbells",
+      "videoBy": "HASfit"
+    },
     "pushup": {
-      "title": "pushup",
+      "title": "Incline push-up",
       "image": "images/exercises/pushup.svg"
     },
     "bridge": {
-      "title": "bridge",
+      "title": "Glute bridge",
       "image": "images/exercises/bridge.svg",
       "video": "https://www.youtube.com/watch?v=99ewh8IACrA",
       "videoTitle": "Ultimate Ab & Core Workout: Bird Dog, Dead Bug, & Bridge",
       "videoBy": "Andrew's Fitness Training"
     },
+    "db-bridge": {
+      "title": "Dumbbell glute bridge",
+      "image": "images/exercises/db-bridge.svg",
+      "video": "https://www.youtube.com/watch?v=99ewh8IACrA",
+      "videoTitle": "Ultimate Ab & Core Workout: Bird Dog, Dead Bug, & Bridge",
+      "videoBy": "Andrew's Fitness Training"
+    },
     "carry": {
-      "title": "carry",
+      "title": "Farmer march",
       "image": "images/exercises/carry.svg",
       "video": "https://www.youtube.com/watch?v=y1r9toPQNkM",
       "videoTitle": "8 Best Dumbbell Exercises Ever",
       "videoBy": "ATHLEAN-X"
     },
+    "suitcase": {
+      "title": "Suitcase march",
+      "image": "images/exercises/suitcase.svg",
+      "video": "https://www.youtube.com/watch?v=y1r9toPQNkM",
+      "videoTitle": "8 Best Dumbbell Exercises Ever",
+      "videoBy": "ATHLEAN-X"
+    },
     "bird-dog": {
-      "title": "bird dog",
+      "title": "Bird dog",
       "image": "images/exercises/bird-dog.svg",
       "video": "https://www.youtube.com/watch?v=99ewh8IACrA",
       "videoTitle": "Ultimate Ab & Core Workout: Bird Dog, Dead Bug, & Bridge",
       "videoBy": "Andrew's Fitness Training"
     },
     "hip-flexor": {
-      "title": "hip flexor",
+      "title": "Hip flexor stretch",
       "image": "images/exercises/hip-flexor.svg"
     },
     "ankle": {
-      "title": "ankle",
+      "title": "Ankle rocks",
       "image": "images/exercises/ankle.svg"
     },
     "curl": {
-      "title": "curl",
+      "title": "Seated hammer curl",
       "image": "images/exercises/curl.svg"
     },
     "clam": {
-      "title": "clam",
+      "title": "Side-lying clam",
       "image": "images/exercises/clam.svg"
     },
     "hamstring": {
-      "title": "hamstring",
+      "title": "Hamstring stretch",
       "image": "images/exercises/hamstring.svg"
     },
     "breathe": {
-      "title": "breathe",
+      "title": "Quiet breathing",
       "image": "images/exercises/breathe.svg"
     },
     "halo": {
-      "title": "halo",
+      "title": "Kettlebell halo",
       "image": "images/exercises/halo.svg",
       "video": "https://www.youtube.com/watch?v=Sci3lijQBmk",
       "videoTitle": "Kettlebell Halo Tutorial",
       "videoBy": "Brittany van Schravendijk"
     },
     "cat-cow": {
-      "title": "cat cow",
+      "title": "Cat-cow",
       "image": "images/exercises/cat-cow.svg",
       "video": "https://www.youtube.com/watch?v=Dq1XBAkIZEM",
       "videoTitle": "Adaptive Yoga for Kids",
       "videoBy": "National Center on Health, Physical Activity and Disability"
     },
     "knee-rock": {
-      "title": "knee rock",
+      "title": "Supine knee rocks",
       "image": "images/exercises/knee-rock.svg"
     },
     "thoracic": {
-      "title": "thoracic",
+      "title": "Thoracic reach",
       "image": "images/exercises/thoracic.svg"
     },
     "side-lie": {
-      "title": "side lie",
+      "title": "Side-lying wind-down",
       "image": "images/exercises/side-lie.svg"
     }
   },
@@ -136,11 +186,11 @@
     "Easy bike spin": "bike",
     "Open book rotation": "open-book",
     "Goblet squat": "squat",
-    "Squat to a bench": "squat",
+    "Squat to a bench": "air-squat",
     "Goblet squat, pause": "squat",
     "Double dumbbell squat": "squat",
     "Dumbbell bench press": "bench",
-    "Dumbbell floor press": "bench",
+    "Dumbbell floor press": "floor-press",
     "Dumbbell bench press, slower lower": "bench",
     "Dumbbell bench press, fuller range": "bench",
     "One-arm dumbbell row": "row",
@@ -152,9 +202,9 @@
     "Kettlebell Romanian deadlift": "hinge",
     "Seated dumbbell press": "press",
     "Seated dumbbell press, partial": "press",
-    "Half-kneeling one-arm press": "press",
+    "Half-kneeling one-arm press": "half-kneel-press",
     "Dead bug": "dead-bug",
-    "Heel slide": "dead-bug",
+    "Heel slide": "heel-slide",
     "Dead bug, short lever": "dead-bug",
     "Dead bug, opposite arm and leg": "dead-bug",
     "Figure-4 stretch": "figure4",
@@ -163,7 +213,7 @@
     "Split squat": "split",
     "Split squat, hands on bench": "split",
     "Split squat with dumbbells": "split",
-    "Rear-foot elevated split squat": "split",
+    "Rear-foot elevated split squat": "rfess",
     "Incline push-up on bench": "pushup",
     "Bench-supported dumbbell row": "row",
     "Row, chest supported on an incline if you prop the bench": "row",
@@ -171,11 +221,11 @@
     "One-arm row, pause": "row",
     "Glute bridge": "bridge",
     "Glute bridge, short range": "bridge",
-    "Dumbbell glute bridge": "bridge",
+    "Dumbbell glute bridge": "db-bridge",
     "Farmer march": "carry",
     "Farmer march, one light dumbbell": "carry",
     "Farmer march, two light dumbbells": "carry",
-    "Suitcase march, one kettlebell": "carry",
+    "Suitcase march, one kettlebell": "suitcase",
     "Bird dog": "bird-dog",
     "Bird dog, arms only": "bird-dog",
     "Bird dog, slow pause": "bird-dog",
@@ -186,8 +236,8 @@
     "Incline push-up": "pushup",
     "Incline push-up, higher hands": "pushup",
     "Incline push-up, slower lower": "pushup",
-    "Kettlebell deadlift": "hinge",
-    "Kettlebell deadlift from a raised step": "hinge",
+    "Kettlebell deadlift": "kb-deadlift",
+    "Kettlebell deadlift from a raised step": "kb-deadlift",
     "Two-dumbbell deadlift": "hinge",
     "Seated hammer curl": "curl",
     "Seated hammer curl, light": "curl",
@@ -197,9 +247,9 @@
     "Side-lying clam, slow": "clam",
     "Hamstring stretch": "hamstring",
     "Quiet breathing": "breathe",
-    "Kettlebell deadlift, light bell": "hinge",
-    "Kettlebell deadlift, slightly heavier": "hinge",
-    "Bodyweight squat": "squat",
+    "Kettlebell deadlift, light bell": "kb-deadlift",
+    "Kettlebell deadlift, slightly heavier": "kb-deadlift",
+    "Bodyweight squat": "air-squat",
     "Kettlebell halo": "halo",
     "Kettlebell halo, very light": "halo",
     "Kettlebell halo, slower": "halo",
