@@ -15,13 +15,15 @@ A personal iPhone Home Screen web app for daily calories, protein, and workouts.
 
 ## Food data
 
-Common foods ship in `data/foods.json` and load when you search, not on first paint. They are derived from [USDA FoodData Central SR Legacy](https://fdc.nal.usda.gov/) (April 2018), which is public domain. Each row is a name, a serving, grams, calories, and protein. Regenerate it with:
+Common foods load when you search, not on first paint. They are sharded under `data/foods/` and derived from public-domain [USDA FoodData Central](https://fdc.nal.usda.gov/) releases: SR Legacy (April 2018), Foundation Foods (December 2025), and a broad set of FNDDS survey foods for 2021–2023 (prepared dishes such as scrambled eggs). Each food stores calories and protein per 100 g plus household portions (1 egg, 1 cup, 1 slice) when USDA published them. Regenerate it with:
 
 ```bash
 python3 tools/generate_foods.py
 ```
 
-Brand search and barcodes use the [Open Food Facts](https://world.openfoodfacts.org) public API. No API key is required. Browsers block a custom `User-Agent` header, so FitTrack identifies itself with `app_name`, `app_version`, and `app_url` on each request (`FitTrack/1.0`, https://markjenkinsoz.github.io/Fittrack/). Barcode scanning uses the iPhone `BarcodeDetector` when it exists, and a vendored [ZXing](https://github.com/zxing-js/library) build otherwise. If you are offline or nothing matches, type the food in by hand.
+After you pick a food you can measure it in that household portion, grams, ounces, or cups and fluid ounces when a volume portion exists. The last amount and unit are remembered for that food. Several foods can be added to one named meal, with each line and the combined calories and protein, and saved as a favorite for one tap later.
+
+Brand search and barcodes still use the [Open Food Facts](https://world.openfoodfacts.org) public API. No API key is required. Browsers block a custom `User-Agent` header, so FitTrack identifies itself with `app_name`, `app_version`, and `app_url` on each request (`FitTrack/1.0`, https://markjenkinsoz.github.io/Fittrack/). Barcode scanning uses the iPhone `BarcodeDetector` when it exists, and a vendored [ZXing](https://github.com/zxing-js/library) build otherwise. If you are offline or nothing matches, type the food in by hand.
 
 ## Weight
 

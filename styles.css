@@ -739,6 +739,16 @@ h2.page-title {
   border-radius: 12px;
   padding: 10px;
 }
+.meal-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--line);
+  font-size: 0.85rem;
+}
+.meal-line span:first-child { flex: 1; }
+.meal-total { font-weight: 750; margin: 8px 0; }
 .scan-panel video {
   width: 100%;
   max-height: 220px;

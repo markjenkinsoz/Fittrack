@@ -407,8 +407,8 @@ test.describe("FitTrack PWA", () => {
     expect(swRes.status()).toBe(200);
     const swText = await swRes.text();
     expect(swText).toContain("./index.html");
-    expect(swText).toContain("fittrack-v2");
-    expect(swText).not.toContain("fittrack-v1");
+    expect(swText).toContain("fittrack-v3");
+    expect(swText).not.toContain("fittrack-v2");
     expect(swText).not.toContain('"/index.html"');
     expect(swText).not.toContain("'/index.html'");
 
@@ -439,7 +439,7 @@ test.describe("FitTrack PWA", () => {
         "/Fittrack/icons/icon-512.png",
         "/Fittrack/icons/icon-192-maskable.png",
         "/Fittrack/icons/icon-512-maskable.png",
-        "/Fittrack/data/foods.json",
+        "/Fittrack/data/foods/index.json",
         "/Fittrack/data/plans.json",
         "/Fittrack/vendor/zxing.min.js",
       ])
@@ -495,12 +495,16 @@ test.describe("FitTrack PWA", () => {
     });
 
     await page.goto("/Fittrack/");
-    const foods = await page.request.get("/Fittrack/data/foods.json");
+    const foods = await page.request.get("/Fittrack/data/foods/index.json");
     expect(foods.status()).toBe(200);
     const body = await foods.json();
-    expect(body.f.length).toBeGreaterThan(2000);
-    expect(JSON.stringify(body).length).toBeLessThan(2 * 1024 * 1024);
+    expect(body.count).toBeGreaterThan(8000);
+    expect(body.shards.length).toBeGreaterThan(10);
     expect(body.source).toMatch(/USDA FoodData Central/);
+    expect(body.source).toMatch(/Foundation/);
+    expect(body.source).toMatch(/FNDDS/);
+    const shard = await page.request.get("/Fittrack/data/foods/b.json");
+    expect(shard.status()).toBe(200);
 
     await page.getByRole("button", { name: "+ Add food" }).click();
     await page.locator("#food-search").fill("bananas raw");
@@ -512,7 +516,7 @@ test.describe("FitTrack PWA", () => {
     await page.locator("#food-servings").fill("2");
     await expect(page.locator("#food-cal")).toHaveValue("210");
     await expect(page.locator("#food-pro")).toHaveValue("2.6");
-    await expect(page.locator("#food-grams")).toHaveValue("236");
+    await expect(page.locator("#serving-label")).toContainText("236 g");
     await page.locator("#food-fav").check();
     await page.getByRole("button", { name: "Add", exact: true }).click();
     await expect(page.getByTestId("food-list")).toContainText("Bananas, raw");
@@ -745,6 +749,87 @@ test.describe("FitTrack PWA", () => {
     const hardCard = page.locator(".ex-card", { hasText: "Double dumbbell squat" });
     await expect(hardCard.locator('input[data-act="set-reps"]')).toHaveCount(4);
     await expect(page.locator(".ex-card", { hasText: "Easy bike spin" })).toContainText("min");
+
+    expect(errors, `JS errors: ${errors.join("\n")}`).toEqual([]);
+  });
+
+  test("builds a breakfast of 2 scrambled eggs and 6 oz egg whites", async ({ page, context }) => {
+    const errors = [];
+    page.on("pageerror", (err) => errors.push(String(err)));
+    page.on("console", (msg) => {
+      if (msg.type() === "error") errors.push(msg.text());
+    });
+    const today = dateKey();
+    await context.addInitScript((payload) => {
+      localStorage.setItem("fittrack-v1", JSON.stringify(payload));
+    }, {
+      version: 1,
+      settings: { calorieGoal: 2200, proteinGoal: 160 },
+      days: {
+        [today]: { foods: [{ id: "old-oatmeal", name: "Oatmeal", calories: 300, protein: 10, createdAt: 1 }] },
+      },
+      favorites: [],
+      recents: [],
+      exerciseNames: [],
+      workouts: [],
+    });
+
+    await page.goto("/Fittrack/");
+    await expect(page.getByTestId("food-list")).toContainText("Oatmeal");
+    await expect(page.getByTestId("food-list")).toContainText("300 cal");
+
+    await page.getByRole("button", { name: "+ Add food" }).click();
+    await page.locator("#food-search").fill("scrambled egg");
+    const egg = page.getByTestId("usda-results").getByRole("button", { name: /Egg omelet or scrambled egg, no added fat/ });
+    await expect(egg).toBeVisible();
+    await egg.click();
+    await expect(page.locator("#food-unit")).toHaveValue("p0");
+    await page.locator("#food-servings").fill("2");
+    await expect(page.locator("#serving-label")).toContainText("2 × 1 egg");
+    await expect(page.locator("#food-cal")).toHaveValue("143");
+    await expect(page.locator("#food-pro")).toHaveValue("12.4");
+    await page.getByRole("button", { name: "Add to meal" }).click();
+    await expect(page.getByTestId("meal-total")).toContainText("143 cal");
+
+    await page.locator("#food-search").fill("egg white raw");
+    const whites = page.getByTestId("usda-results").getByRole("button", { name: /white only, raw/i });
+    await expect(whites).toBeVisible();
+    await whites.click();
+    await page.locator("#food-unit").selectOption("oz");
+    await page.locator("#food-servings").fill("6");
+    await expect(page.locator("#serving-label")).toContainText("6 oz");
+    await expect(page.locator("#food-cal")).toHaveValue("88");
+    await expect(page.locator("#food-pro")).toHaveValue("18.2");
+    await page.getByRole("button", { name: "Add to meal" }).click();
+    await expect(page.getByTestId("meal-total")).toContainText("231 cal");
+    await expect(page.getByTestId("meal-total")).toContainText("30.6 g");
+
+    await page.locator("#meal-name").fill("Breakfast");
+    await page.locator("#food-fav").check();
+    await page.getByRole("button", { name: "Add", exact: true }).click();
+
+    await expect(page.getByTestId("food-list")).toContainText("Oatmeal");
+    const meal = page.locator(".food-row", { hasText: "Breakfast" });
+    await expect(meal.getByTestId("meal-lines")).toContainText("2 × 1 egg");
+    await expect(meal.getByTestId("meal-lines")).toContainText("Egg omelet or scrambled egg, no added fat");
+    await expect(meal.getByTestId("meal-lines")).toContainText("6 oz");
+    await expect(meal.getByTestId("meal-lines")).toContainText("Egg, white only, raw");
+    await expect(meal).toContainText("231 cal");
+    await expect(meal).toContainText("30.6 g protein");
+    await expect(page.getByTestId("quick-add")).toContainText("Breakfast");
+
+    page.once("dialog", (dialog) => dialog.accept());
+    await page.getByRole("button", { name: "Delete Breakfast" }).click();
+    await expect(page.getByTestId("food-list")).not.toContainText("Breakfast");
+    await page.getByTestId("quick-add").getByRole("button", { name: /Breakfast/ }).click();
+    await expect(page.locator(".food-row", { hasText: "Breakfast" })).toContainText("231 cal");
+    await expect(page.getByTestId("food-list")).toContainText("Oatmeal");
+
+    await page.getByRole("button", { name: "+ Add food" }).click();
+    await page.locator("#food-search").fill("egg white raw");
+    await page.getByTestId("usda-results").getByRole("button", { name: /white only, raw/i }).click();
+    await expect(page.locator("#food-unit")).toHaveValue("oz");
+    await expect(page.locator("#food-servings")).toHaveValue("6");
 
     expect(errors, `JS errors: ${errors.join("\n")}`).toEqual([]);
   });

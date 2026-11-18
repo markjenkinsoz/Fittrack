@@ -81,6 +81,7 @@
       exerciseNames: [],
       workouts: [],
       weights: {},
+      foodUses: {},
     };
   }
 
@@ -114,6 +115,17 @@
           lb: Math.round(lb * 10) / 10,
           note: entry.note ? String(entry.note).slice(0, 140) : "",
           updatedAt: Number(entry.updatedAt) || 0,
+        };
+      });
+    }
+    if (raw.foodUses && typeof raw.foodUses === "object") {
+      Object.keys(raw.foodUses).forEach((key) => {
+        const use = raw.foodUses[key];
+        const amount = Number(use && use.amount);
+        if (!(amount > 0) || !use.unit) return;
+        data.foodUses[String(key).slice(0, 180)] = {
+          amount,
+          unit: String(use.unit).slice(0, 24),
         };
       });
     }
@@ -165,11 +177,36 @@
         protein: numOrZero(food.protein),
         createdAt: Date.now(),
       };
+      const items = copyFoodItems(food.items);
+      if (items && items.length) {
+        item.items = items;
+        item.meal = true;
+      } else if (food.qty && food.qty.quantityLabel) {
+        item.qty = {
+          amount: numOrZero(food.qty.amount),
+          unit: String(food.qty.unit || ""),
+          unitLabel: String(food.qty.unitLabel || ""),
+          quantityLabel: String(food.qty.quantityLabel || ""),
+          grams: numOrZero(food.qty.grams),
+        };
+      }
       this.data.days[date].foods.push(item);
       this._touchRecent(item);
       if (food.favorite) this._ensureFavorite(item);
       this.save();
       return item;
+    },
+    rememberFoodUse(name, use) {
+      const key = String(name || "").trim().toLowerCase();
+      const amount = Number(use && use.amount);
+      if (!key || !(amount > 0) || !use.unit) return;
+      const ordered = {};
+      ordered[key] = { amount, unit: String(use.unit) };
+      Object.keys(this.data.foodUses).forEach((item) => {
+        if (item !== key && Object.keys(ordered).length < 200) ordered[item] = this.data.foodUses[item];
+      });
+      this.data.foodUses = ordered;
+      this.save();
     },
     updateFood(date, id, patch) {
       const item = this.foodsOn(date).find((food) => food.id === id);
@@ -187,6 +224,8 @@
     },
     _touchRecent(item) {
       const rec = { name: item.name, calories: item.calories, protein: item.protein };
+      if (item.items) rec.items = item.items;
+      if (item.qty) rec.qty = item.qty;
       this.data.recents = [
         rec,
         ...this.data.recents.filter((r) => r.name.toLowerCase() !== rec.name.toLowerCase()),
@@ -198,13 +237,19 @@
       if (existing) {
         existing.calories = item.calories;
         existing.protein = item.protein;
+        if (item.items) existing.items = item.items;
+        else delete existing.items;
+        if (item.qty) existing.qty = item.qty;
       } else {
-        this.data.favorites.push({
+        const fav = {
           id: uid(),
           name: item.name,
           calories: item.calories,
           protein: item.protein,
-        });
+        };
+        if (item.items) fav.items = item.items;
+        if (item.qty) fav.qty = item.qty;
+        this.data.favorites.push(fav);
       }
     },
     isFavorite(name) {
@@ -566,6 +611,22 @@
       </div>`;
   }
 
+  function copyFoodItems(items) {
+    if (!Array.isArray(items) || !items.length) return null;
+    return items.map((item) => ({
+      name: String(item.name || ""),
+      amount: numOrZero(item.amount),
+      unit: String(item.unit || ""),
+      unitLabel: String(item.unitLabel || ""),
+      quantityLabel: String(item.quantityLabel || ""),
+      grams: numOrZero(item.grams),
+      calories: numOrZero(item.calories),
+      protein: numOrZero(item.protein),
+    }));
+  }
+
+  const GRAMS_PER_OZ = 28.3495;
+
   function fmtLb(n) {
     return (Math.round(Number(n) * 10) / 10).toFixed(1);
   }
@@ -612,21 +673,40 @@
   function ensureFoods() {
     if (foodsCache) return Promise.resolve(foodsCache);
     if (!foodsLoading) {
-      foodsLoading = fetch("./data/foods.json")
+      foodsLoading = fetch("./data/foods/index.json")
         .then((res) => {
           if (!res.ok) throw new Error("foods");
           return res.json();
         })
-        .then((data) => {
-          foodsCache = (data.f || []).map((row) => ({
-            name: row[0],
-            serving: row[1],
-            grams: Number(row[2]) || 0,
-            calories: Number(row[3]) || 0,
-            protein: Number(row[4]) || 0,
-            hay: String(row[0]).toLowerCase(),
-          }));
-          return foodsCache;
+        .then((index) =>
+          Promise.all(
+            (index.shards || []).map((shard) =>
+              fetch("./data/foods/" + shard + ".json").then((res) => {
+                if (!res.ok) throw new Error("shard");
+                return res.json();
+              })
+            )
+          )
+        )
+        .then((parts) => {
+          const list = [];
+          parts.forEach((part) => {
+            (part.f || []).forEach((row) => {
+              const portions = (row[3] || []).map((portion) => ({
+                label: portion[0],
+                grams: Number(portion[1]) || 0,
+              }));
+              list.push({
+                name: row[0],
+                kcal100: Number(row[1]) || 0,
+                pro100: Number(row[2]) || 0,
+                portions,
+                hay: String(row[0]).toLowerCase(),
+              });
+            });
+          });
+          foodsCache = list;
+          return list;
         })
         .catch((err) => {
           foodsLoading = null;
@@ -668,7 +748,12 @@
       if (food.hay.startsWith(tokens[0])) score += 4;
       const words = food.hay.split(/[^a-z0-9]+/);
       if (tokens.every((token) => words.includes(token))) score += 2;
-      score -= food.name.length / 200;
+      const asks = tokens.join(" ");
+      if (/\bns as to\b/.test(food.hay) && !asks.includes("ns")) score -= 4;
+      if (/with cheese|with meat|with vegetable/.test(food.hay) && !/cheese|meat|vegetable/.test(asks)) score -= 3;
+      if (/fast food|restaurant/.test(food.hay) && !/restaurant|fast/.test(asks)) score -= 1;
+      if (/no added fat/.test(food.hay) && !/butter|oil|margarine|fat/.test(asks)) score += 4;
+      score -= food.name.length / 90;
       hits.push({ food, score });
     }
     hits.sort((a, b) => b.score - a.score || a.food.name.localeCompare(b.food.name));
@@ -699,21 +784,64 @@
       const protein100 = finiteOrNull(nutriments["proteins_100g"]);
       protein = gramOut > 0 && protein100 != null ? (protein100 * gramOut) / 100 : 0;
     }
+    const gramsEach = gramOut ? gramOut : 100;
+    const kcal100 = gramsEach > 0 ? (calories * 100) / gramsEach : calories;
+    const pro100 = gramsEach > 0 ? ((protein || 0) * 100) / gramsEach : protein || 0;
     return {
       name,
+      kcal100,
+      pro100,
+      portions: [{ label: serving || "1 serving", grams: Math.round(gramsEach) }],
       calories: Math.round(calories),
       protein: round1(protein || 0),
-      grams: gramOut ? Math.round(gramOut) : 0,
+      grams: Math.round(gramsEach),
       serving: serving || "1 serving",
     };
   }
 
+  function unitsFor(food) {
+    const units = [];
+    (food.portions || []).forEach((portion, index) => {
+      if (portion.grams > 0) units.push({ key: "p" + index, label: portion.label, gramsEach: portion.grams });
+    });
+    units.push({ key: "g", label: "grams", gramsEach: 1 });
+    units.push({ key: "oz", label: "oz", gramsEach: GRAMS_PER_OZ });
+    const cup = (food.portions || []).find((portion) => /\bcups?\b/i.test(portion.label) && !/fl oz/i.test(portion.label));
+    const floz = (food.portions || []).find((portion) => /fl oz/i.test(portion.label));
+    if (cup && cup.grams > 0) units.push({ key: "cup", label: "cup", gramsEach: cup.grams });
+    if (floz && floz.grams > 0) units.push({ key: "floz", label: "fl oz", gramsEach: floz.grams });
+    else if (cup && cup.grams > 0 && /milk|juice|broth|beverage|drink|coffee|tea|water|wine|beer|soda|egg white/i.test(food.name || "")) {
+      units.push({ key: "floz", label: "fl oz", gramsEach: cup.grams / 8 });
+    }
+    return units;
+  }
+
+  function quantityLabel(amount, unit) {
+    if (!unit) return String(amount);
+    if (unit.key === "g") return trimAmount(amount) + " g";
+    if (unit.key === "oz") return trimAmount(amount) + " oz";
+    if (unit.key === "floz") return trimAmount(amount) + " fl oz";
+    if (unit.key === "cup") return trimAmount(amount) + " cup";
+    return trimAmount(amount) + " × " + unit.label;
+  }
+  function trimAmount(amount) {
+    const rounded = round1(amount);
+    return String(rounded);
+  }
+
+  function defaultPortion(food) {
+    return (food.portions && food.portions[0]) || { label: "100 g", grams: 100 };
+  }
   function foodHitButton(food, source) {
+    const portion = defaultPortion(food);
+    const calories = Math.round((food.kcal100 * portion.grams) / 100);
+    const protein = round1((food.pro100 * portion.grams) / 100);
     return `<button type="button" class="food-hit" data-act="pick-food" data-source="${esc(source)}"
-      data-name="${esc(food.name)}" data-cal="${esc(food.calories)}" data-pro="${esc(food.protein)}"
-      data-grams="${esc(food.grams || 0)}" data-serving="${esc(food.serving || "")}">
+      data-name="${esc(food.name)}" data-kcal100="${esc(food.kcal100)}" data-pro100="${esc(food.pro100)}"
+      data-cal="${esc(calories)}" data-pro="${esc(protein)}" data-grams="${esc(portion.grams)}"
+      data-serving="${esc(portion.label)}" data-portions="${esc(JSON.stringify(food.portions || []))}">
       <span class="name">${esc(food.name)}</span>
-      <span class="meta">${esc(food.serving || "1 serving")}${food.grams ? " · " + esc(food.grams) + " g" : ""} · ${fmtNum(food.calories)} cal · ${fmtNum(food.protein, 1)} g</span>
+      <span class="meta">${esc(portion.label)} · ${esc(portion.grams)} g · ${fmtNum(calories)} cal · ${fmtNum(protein, 1)} g</span>
     </button>`;
   }
 
@@ -824,73 +952,143 @@
   }
 
   function applyFoodBase(base) {
-    ui.foodBase = {
-      name: base.name,
-      calories: Number(base.calories) || 0,
-      protein: Number(base.protein) || 0,
-      grams: Number(base.grams) || 0,
-      serving: base.serving || "1 serving",
-    };
+    let portions = base.portions;
+    if ((!portions || !portions.length) && base.grams) {
+      portions = [{ label: base.serving || "1 serving", grams: Number(base.grams) }];
+    }
+    const kcal100 = base.kcal100 != null ? Number(base.kcal100) : portions && portions[0] ? (Number(base.calories) * 100) / portions[0].grams : Number(base.calories) || 0;
+    const pro100 = base.pro100 != null ? Number(base.pro100) : portions && portions[0] ? (Number(base.protein) * 100) / portions[0].grams : Number(base.protein) || 0;
+    const food = { name: base.name, kcal100, pro100, portions: portions || [] };
+    const units = unitsFor(food);
+    ui.foodBase = { name: food.name, kcal100, pro100, units };
     const name = document.getElementById("food-name");
-    const cal = document.getElementById("food-cal");
-    const pro = document.getElementById("food-pro");
     const box = document.getElementById("serving-adjust");
-    const label = document.getElementById("serving-label");
-    const servings = document.getElementById("food-servings");
-    const gramsWrap = document.getElementById("grams-wrap");
-    const grams = document.getElementById("food-grams");
-    if (name) name.value = ui.foodBase.name;
-    if (cal) cal.value = String(Math.round(ui.foodBase.calories));
-    if (pro) pro.value = String(round1(ui.foodBase.protein));
-    if (box) {
-      box.hidden = false;
-      box.querySelectorAll("input").forEach((input) => {
-        input.disabled = false;
-      });
+    const unitSelect = document.getElementById("food-unit");
+    const amount = document.getElementById("food-servings");
+    if (name) name.value = food.name;
+    if (unitSelect) {
+      unitSelect.innerHTML = units
+        .map((unit) => `<option value="${esc(unit.key)}">${esc(unit.label)}</option>`)
+        .join("");
+      unitSelect.disabled = false;
     }
-    if (label) {
-      label.textContent =
-        "1 × " +
-        ui.foodBase.serving +
-        (ui.foodBase.grams ? " · " + ui.foodBase.grams + " g" : "") +
-        " · " +
-        Math.round(ui.foodBase.calories) +
-        " cal · " +
-        round1(ui.foodBase.protein) +
-        " g protein";
+    const remembered = store.data.foodUses[food.name.toLowerCase()];
+    let unitKey = units[0] ? units[0].key : "g";
+    let startAmount = 1;
+    if (remembered && units.some((unit) => unit.key === remembered.unit)) {
+      unitKey = remembered.unit;
+      startAmount = remembered.amount;
     }
-    if (servings) servings.value = "1";
-    if (gramsWrap && grams) {
-      if (ui.foodBase.grams > 0) {
-        gramsWrap.hidden = false;
-        grams.value = String(ui.foodBase.grams);
-      } else {
-        gramsWrap.hidden = true;
-        grams.value = "";
-      }
+    if (unitSelect) unitSelect.value = unitKey;
+    if (amount) {
+      amount.disabled = false;
+      amount.value = String(startAmount);
     }
+    if (box) box.hidden = false;
+    refreshQty();
   }
 
-  function scaleFromServings(servings) {
-    if (!ui.foodBase || !(servings > 0)) return;
+  function selectedUnit() {
+    if (!ui.foodBase) return null;
+    const unitSelect = document.getElementById("food-unit");
+    const key = unitSelect ? unitSelect.value : "";
+    return ui.foodBase.units.find((unit) => unit.key === key) || ui.foodBase.units[0] || null;
+  }
+  function refreshQty() {
+    if (!ui.foodBase) return;
+    const amountEl = document.getElementById("food-servings");
+    const amount = Number(amountEl && amountEl.value);
+    const unit = selectedUnit();
     const cal = document.getElementById("food-cal");
     const pro = document.getElementById("food-pro");
-    const grams = document.getElementById("food-grams");
-    if (cal) cal.value = String(Math.round(ui.foodBase.calories * servings));
-    if (pro) pro.value = String(round1(ui.foodBase.protein * servings));
-    if (grams && ui.foodBase.grams > 0 && document.activeElement !== grams) {
-      grams.value = String(Math.round(ui.foodBase.grams * servings));
+    const label = document.getElementById("serving-label");
+    if (!(amount > 0) || !unit) return;
+    const grams = unit.gramsEach * amount;
+    const calories = Math.round((ui.foodBase.kcal100 * grams) / 100);
+    const protein = round1((ui.foodBase.pro100 * grams) / 100);
+    if (cal) cal.value = String(calories);
+    if (pro) pro.value = String(protein);
+    if (label) {
+      label.textContent =
+        quantityLabel(amount, unit) +
+        " · " +
+        round1(grams) +
+        " g · " +
+        calories +
+        " cal · " +
+        protein +
+        " g protein";
     }
   }
-  function scaleFromGrams(grams) {
-    if (!ui.foodBase || !(ui.foodBase.grams > 0) || !(grams > 0)) return;
-    const servings = grams / ui.foodBase.grams;
-    const servingsEl = document.getElementById("food-servings");
-    if (servingsEl && document.activeElement !== servingsEl) servingsEl.value = String(round1(servings));
-    const cal = document.getElementById("food-cal");
-    const pro = document.getElementById("food-pro");
-    if (cal) cal.value = String(Math.round(ui.foodBase.calories * servings));
-    if (pro) pro.value = String(round1(ui.foodBase.protein * servings));
+  function currentQty() {
+    if (!ui.foodBase) return null;
+    const amount = Number((document.getElementById("food-servings") || {}).value);
+    const unit = selectedUnit();
+    if (!(amount > 0) || !unit) return null;
+    const grams = unit.gramsEach * amount;
+    return {
+      name: ui.foodBase.name,
+      amount,
+      unit: unit.key,
+      unitLabel: unit.label,
+      quantityLabel: quantityLabel(amount, unit),
+      grams: round1(grams),
+      calories: Math.round((ui.foodBase.kcal100 * grams) / 100),
+      protein: round1((ui.foodBase.pro100 * grams) / 100),
+    };
+  }
+  function currentLine() {
+    const qty = currentQty();
+    if (qty) return qty;
+    const nameEl = document.getElementById("food-name");
+    const name = nameEl ? nameEl.value.trim() : "";
+    if (!name) return null;
+    return {
+      name,
+      amount: 1,
+      unit: "manual",
+      unitLabel: "",
+      quantityLabel: name,
+      grams: 0,
+      calories: numOrZero((document.getElementById("food-cal") || {}).value),
+      protein: numOrZero((document.getElementById("food-pro") || {}).value),
+    };
+  }
+  function renderMeal() {
+    const box = document.getElementById("meal-lines");
+    const total = document.getElementById("meal-total");
+    const nameWrap = document.getElementById("meal-name-wrap");
+    if (!box || !total) return;
+    const items = ui.mealItems || [];
+    box.innerHTML = items
+      .map(
+        (item, index) => `<div class="meal-line">
+          <span>${esc(item.quantityLabel)} · ${esc(item.name)}</span>
+          <span>${fmtNum(item.calories)} cal · ${fmtNum(item.protein, 1)} g</span>
+          <button type="button" class="icon-btn" data-act="remove-meal-item" data-index="${index}" aria-label="Remove ${esc(item.name)} from meal">✕</button>
+        </div>`
+      )
+      .join("");
+    const calories = items.reduce((sum, item) => sum + item.calories, 0);
+    const protein = round1(items.reduce((sum, item) => sum + item.protein, 0));
+    total.hidden = items.length === 0;
+    total.textContent = items.length ? "Meal total " + fmtNum(calories) + " cal · " + fmtNum(protein, 1) + " g protein" : "";
+    if (nameWrap) nameWrap.hidden = items.length === 0;
+  }
+  function clearPicker() {
+    ui.foodBase = null;
+    ["food-name", "food-cal", "food-pro", "food-search"].forEach((id) => {
+      const el = document.getElementById(id);
+      if (el) el.value = "";
+    });
+    const box = document.getElementById("serving-adjust");
+    if (box) box.hidden = true;
+    const usda = document.getElementById("usda-results");
+    const brands = document.getElementById("brand-results");
+    const status = document.getElementById("brand-status");
+    if (usda) usda.innerHTML = "";
+    if (brands) brands.innerHTML = "";
+    if (status) status.textContent = "";
   }
 
   function loadZXing() {
@@ -1132,6 +1330,18 @@
             <div class="food-row" data-id="${esc(food.id)}">
               <div>
                 <div class="name">${esc(food.name)}</div>
+                ${
+                  food.items && food.items.length
+                    ? `<div data-testid="meal-lines">${food.items
+                        .map(
+                          (item) =>
+                            `<div class="meta">${esc(item.quantityLabel)} · ${esc(item.name)} · ${fmtNum(item.calories)} cal · ${fmtNum(item.protein, 1)} g</div>`
+                        )
+                        .join("")}</div>`
+                    : food.qty && food.qty.quantityLabel
+                      ? `<div class="meta">${esc(food.qty.quantityLabel)}</div>`
+                      : ""
+                }
                 <div class="meta">${fmtNum(food.calories)} cal · ${fmtNum(food.protein, 1)} g protein</div>
               </div>
               <div class="food-actions">
@@ -1713,6 +1923,7 @@
     const isEdit = Boolean(existing);
     ui.sheet = { type: "food", id: existing && existing.id };
     ui.foodBase = null;
+    ui.mealItems = [];
     openSheet(`
       <h3>${isEdit ? "Edit food" : "Add food"}</h3>
       ${
@@ -1746,27 +1957,36 @@
           <p id="serving-label" class="hint"></p>
           <div class="field-row">
             <div class="field">
-              <label for="food-servings">Servings</label>
+              <label for="food-servings">Amount</label>
               <input id="food-servings" type="number" inputmode="decimal" min="0" step="any" value="1" disabled />
             </div>
-            <div class="field" id="grams-wrap">
-              <label for="food-grams">Grams</label>
-              <input id="food-grams" type="number" inputmode="decimal" min="0" step="any" disabled />
+            <div class="field">
+              <label for="food-unit">Unit</label>
+              <select id="food-unit" data-act="food-unit"></select>
             </div>
+          </div>
+          <button type="button" class="btn secondary" data-act="add-to-meal">Add to meal</button>
+        </div>
+        <div id="meal-builder" data-testid="meal-builder">
+          <div id="meal-lines"></div>
+          <p id="meal-total" class="meal-total" data-testid="meal-total" hidden></p>
+          <div class="field" id="meal-name-wrap" hidden>
+            <label for="meal-name">Meal name</label>
+            <input id="meal-name" maxlength="80" placeholder="Breakfast" />
           </div>
         </div>
         <div class="field">
           <label for="food-name">Food</label>
-          <input id="food-name" name="name" required maxlength="140" placeholder="Greek yogurt" value="${esc(existing ? existing.name : "")}" />
+          <input id="food-name" name="name" maxlength="140" placeholder="Greek yogurt" value="${esc(existing ? existing.name : "")}" />
         </div>
         <div class="field-row">
           <div class="field">
             <label for="food-cal">Calories</label>
-            <input id="food-cal" name="calories" type="number" inputmode="numeric" min="0" step="1" required value="${esc(existing ? existing.calories : "")}" />
+            <input id="food-cal" name="calories" type="number" inputmode="numeric" min="0" step="1" value="${esc(existing ? existing.calories : "")}" />
           </div>
           <div class="field">
             <label for="food-pro">Protein (g)</label>
-            <input id="food-pro" name="protein" type="number" inputmode="decimal" min="0" step="0.1" required value="${esc(existing ? existing.protein : "")}" />
+            <input id="food-pro" name="protein" type="number" inputmode="decimal" min="0" step="0.1" value="${esc(existing ? existing.protein : "")}" />
           </div>
         </div>
         ${isEdit ? "" : `<label class="check"><input type="checkbox" id="food-fav" /> Save as favorite</label>`}
@@ -1955,13 +2175,19 @@
       return;
     }
     if (act === "quick-add") {
+      const name = btn.getAttribute("data-name");
+      const fav = store.data.favorites.find((item) => item.name === name);
+      const recent = store.data.recents.find((item) => item.name === name);
+      const src = fav || recent;
       store.addFood(ui.date, {
-        name: btn.getAttribute("data-name"),
-        calories: btn.getAttribute("data-calories"),
-        protein: btn.getAttribute("data-protein"),
+        name,
+        calories: src ? src.calories : btn.getAttribute("data-calories"),
+        protein: src ? src.protein : btn.getAttribute("data-protein"),
+        items: src && src.items,
+        qty: src && src.qty,
       });
       render();
-      toast("Added " + btn.getAttribute("data-name"));
+      toast("Added " + name);
       return;
     }
     if (act === "close-sheet") {
@@ -1969,13 +2195,43 @@
       return;
     }
     if (act === "pick-food") {
+      let portions = [];
+      try {
+        portions = JSON.parse(btn.getAttribute("data-portions") || "[]");
+      } catch (err) {
+        portions = [];
+      }
       applyFoodBase({
         name: btn.getAttribute("data-name"),
+        kcal100: Number(btn.getAttribute("data-kcal100")),
+        pro100: Number(btn.getAttribute("data-pro100")),
+        portions,
         calories: Number(btn.getAttribute("data-cal")),
         protein: Number(btn.getAttribute("data-pro")),
         grams: Number(btn.getAttribute("data-grams")) || 0,
         serving: btn.getAttribute("data-serving") || "",
       });
+      return;
+    }
+    if (act === "add-to-meal") {
+      const line = currentLine();
+      if (!line || !line.name) {
+        toast("Choose a food first");
+        return;
+      }
+      ui.mealItems = ui.mealItems || [];
+      ui.mealItems.push(line);
+      if (line.unit && line.unit !== "manual") store.rememberFoodUse(line.name, { amount: line.amount, unit: line.unit });
+      renderMeal();
+      clearPicker();
+      const search = document.getElementById("food-search");
+      if (search) search.focus();
+      return;
+    }
+    if (act === "remove-meal-item") {
+      const index = Number(btn.getAttribute("data-index"));
+      if (ui.mealItems && index >= 0) ui.mealItems.splice(index, 1);
+      renderMeal();
       return;
     }
     if (act === "lookup-barcode") {
@@ -2159,6 +2415,10 @@
     const el = event.target;
     const act = el.getAttribute && el.getAttribute("data-act");
     if (!act) return;
+    if (act === "food-unit") {
+      refreshQty();
+      return;
+    }
     if (act === "goal-cal" || act === "goal-pro" || act === "goal-weight") {
       saveGoalsFromInputs();
       return;
@@ -2190,15 +2450,50 @@
     if (!(form instanceof HTMLFormElement)) return;
     if (form.id === "food-form") {
       event.preventDefault();
-      const name = form.name.value;
-      const calories = form.calories.value;
-      const protein = form.protein.value;
       const fav = form.querySelector("#food-fav");
       if (ui.sheet && ui.sheet.id) {
-        store.updateFood(ui.date, ui.sheet.id, { name, calories, protein });
+        if (!String(form.name.value || "").trim()) {
+          toast("Enter a food name");
+          return;
+        }
+        store.updateFood(ui.date, ui.sheet.id, {
+          name: form.name.value,
+          calories: form.calories.value,
+          protein: form.protein.value,
+        });
         toast("Food updated");
+      } else if (ui.mealItems && ui.mealItems.length) {
+        const pending = currentLine();
+        const items = ui.mealItems.slice();
+        if (pending && pending.name) items.push(pending);
+        const mealName = ((document.getElementById("meal-name") || {}).value || items[0].name || "Meal").trim();
+        const calories = items.reduce((sum, item) => sum + item.calories, 0);
+        const protein = round1(items.reduce((sum, item) => sum + item.protein, 0));
+        items.forEach((item) => {
+          if (item.unit && item.unit !== "manual") store.rememberFoodUse(item.name, { amount: item.amount, unit: item.unit });
+        });
+        store.addFood(ui.date, {
+          name: mealName,
+          calories,
+          protein,
+          items,
+          favorite: fav && fav.checked,
+        });
+        toast("Meal added");
       } else {
-        store.addFood(ui.date, { name, calories, protein, favorite: fav && fav.checked });
+        if (!String(form.name.value || "").trim()) {
+          toast("Enter a food name");
+          return;
+        }
+        const line = currentQty();
+        if (line) store.rememberFoodUse(line.name, { amount: line.amount, unit: line.unit });
+        store.addFood(ui.date, {
+          name: form.name.value,
+          calories: form.calories.value,
+          protein: form.protein.value,
+          favorite: fav && fav.checked,
+          qty: line,
+        });
         toast("Food added");
       }
       closeSheet();
@@ -2250,11 +2545,7 @@
       return;
     }
     if (el.id === "food-servings") {
-      scaleFromServings(Number(el.value));
-      return;
-    }
-    if (el.id === "food-grams") {
-      scaleFromGrams(Number(el.value));
+      refreshQty();
       return;
     }
     if (el.id === "weight-date") {
