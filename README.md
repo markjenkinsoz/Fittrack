@@ -23,6 +23,19 @@ python3 tools/generate_foods.py
 
 After you pick a food you can measure it in that household portion, grams, ounces, or cups and fluid ounces when a volume portion exists. The last amount and unit are remembered for that food. Several foods can be added to one named meal, with each line and the combined calories and protein, and saved as a favorite for one tap later.
 
+Restaurant menus that could be copied from an official nutrition PDF are included and tagged with the restaurant name. You can filter the search to one restaurant and add an item by serving count, including inside a meal. Sources and dates are in `data/restaurants.json`.
+
+| Restaurant | Source | Date |
+| --- | --- | --- |
+| Culver's | [Nutrition & Allergen Guide](https://cdn.culvers.com/menu/docs/guide-nutrition-allergen.pdf) | 2025 |
+| Braum's | [Nutritional chart PDF](https://www.braums.com/wp-content/uploads/2022/08/2018-Nutritional-Chart-for-web.pdf) | 2018 chart, hosted by Braum's (path dated August 2022) |
+| Chipotle | [US nutrition facts paper menu](https://www.chipotle.com/content/dam/chipotle/menu/nutrition/US-Nutrition-Facts-Paper-Menu-3-2025.pdf) | March 2025 |
+| Panera | [Nutrition guide](https://www.panerabread.com/content/dam/panerabread/documents/c8-26-nutrition-guide.pdf) | Effective 9/2/2026 |
+
+McDonald's, Chick-fil-A, Wendy's, Taco Bell, Sonic, Subway, and Starbucks are not in the app. Their current U.S. menu numbers were not in a document that could be copied without guessing. Wendy's publishes a core-menu PDF that is a non-U.S. menu (salt in grams, different items), so those values were left out. Chick-fil-A's downloadable PDF found for this pass is the Little Blue Menu guide, not the standard chicken menu.
+
+Home-plan exercises use original FitTrack line drawings. Where a YouTube demonstration was checked with YouTube's oEmbed API on 18 Nov 2026, the plan links to it. Some links are full routines that include the movement. Stretches and a few strength variations have a drawing only, because a matching video was not verified.
+
 Brand search and barcodes still use the [Open Food Facts](https://world.openfoodfacts.org) public API. No API key is required. Browsers block a custom `User-Agent` header, so FitTrack identifies itself with `app_name`, `app_version`, and `app_url` on each request (`FitTrack/1.0`, https://markjenkinsoz.github.io/Fittrack/). Barcode scanning uses the iPhone `BarcodeDetector` when it exists, and a vendored [ZXing](https://github.com/zxing-js/library) build otherwise. If you are offline or nothing matches, type the food in by hand.
 
 ## Weight

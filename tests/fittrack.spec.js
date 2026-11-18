@@ -407,8 +407,8 @@ test.describe("FitTrack PWA", () => {
     expect(swRes.status()).toBe(200);
     const swText = await swRes.text();
     expect(swText).toContain("./index.html");
-    expect(swText).toContain("fittrack-v3");
-    expect(swText).not.toContain("fittrack-v2");
+    expect(swText).toContain("fittrack-v4");
+    expect(swText).not.toContain("fittrack-v3");
     expect(swText).not.toContain('"/index.html"');
     expect(swText).not.toContain("'/index.html'");
 
@@ -440,6 +440,8 @@ test.describe("FitTrack PWA", () => {
         "/Fittrack/icons/icon-192-maskable.png",
         "/Fittrack/icons/icon-512-maskable.png",
         "/Fittrack/data/foods/index.json",
+        "/Fittrack/data/restaurants.json",
+        "/Fittrack/data/exercise-demos.json",
         "/Fittrack/data/plans.json",
         "/Fittrack/vendor/zxing.min.js",
       ])
@@ -830,6 +832,55 @@ test.describe("FitTrack PWA", () => {
     await page.getByTestId("usda-results").getByRole("button", { name: /white only, raw/i }).click();
     await expect(page.locator("#food-unit")).toHaveValue("oz");
     await expect(page.locator("#food-servings")).toHaveValue("6");
+
+    expect(errors, `JS errors: ${errors.join("\n")}`).toEqual([]);
+  });
+
+  test("finds official restaurant items and shows an exercise drawing", async ({ page }) => {
+    const errors = [];
+    page.on("pageerror", (err) => errors.push(String(err)));
+    page.on("console", (msg) => {
+      if (msg.type() === "error") errors.push(msg.text());
+    });
+    await page.goto("/Fittrack/");
+    await page.getByRole("button", { name: "+ Add food" }).click();
+    await expect(page.locator("#food-place option")).toHaveCount(5);
+    await page.locator("#food-search").fill("butterburger single");
+    const burger = page.getByTestId("restaurant-results").getByRole("button", { name: /^Culver's ButterBurger, Single/ });
+    await expect(burger).toContainText("Culver's");
+    await expect(burger).toContainText("390");
+    await expect(burger).toContainText("20");
+    await burger.click();
+    await expect(page.locator("#food-cal")).toHaveValue("390");
+    await expect(page.locator("#food-pro")).toHaveValue("20");
+    await page.getByRole("button", { name: "Add", exact: true }).click();
+    await expect(page.getByTestId("food-list")).toContainText("Culver's ButterBurger, Single");
+    await expect(page.getByTestId("food-list")).toContainText("390 cal");
+
+    await page.getByRole("button", { name: "+ Add food" }).click();
+    await page.locator("#food-place").selectOption("braums");
+    await page.locator("#food-search").fill("quarter lb cheeseburger");
+    await expect(page.getByTestId("restaurant-results")).toContainText("Braum's");
+    await expect(page.getByTestId("restaurant-results")).toContainText("530");
+    await expect(page.getByTestId("usda-results")).toBeEmpty();
+    await page.getByRole("button", { name: "Cancel" }).click();
+
+    await page.getByRole("tab", { name: "Workouts" }).click();
+    await page.getByRole("button", { name: "Home plans" }).click();
+    await page.getByRole("button", { name: "Level 1" }).click();
+    await page.getByRole("button", { name: "Open Strength A" }).click();
+    const squat = page.locator(".plan-ex", { hasText: "Squat to a bench" });
+    await expect(squat.locator("img")).toHaveAttribute("src", /images\/exercises\/squat\.svg/);
+    await expect(squat.locator("img")).toHaveAttribute("loading", "lazy");
+    await expect(squat.getByRole("link", { name: "Watch demo" })).toHaveAttribute("href", /youtube\.com\/watch\?v=sOUCmU27mjE/);
+    const halo = page.locator("body");
+    await page.getByRole("button", { name: "Back to plans" }).click();
+    await page.getByRole("button", { name: "Open Kettlebell circuit" }).click();
+    await expect(page.locator(".plan-ex", { hasText: "Kettlebell halo, very light" }).locator("img")).toHaveAttribute(
+      "src",
+      /halo\.svg/
+    );
+    expect(halo).toBeTruthy();
 
     expect(errors, `JS errors: ${errors.join("\n")}`).toEqual([]);
   });

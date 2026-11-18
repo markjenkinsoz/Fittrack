@@ -668,6 +668,65 @@
     return streak;
   }
 
+  let restaurantsCache = null;
+  let restaurantsLoading = null;
+  function ensureRestaurants() {
+    if (restaurantsCache) return Promise.resolve(restaurantsCache);
+    if (!restaurantsLoading) {
+      restaurantsLoading = fetch("./data/restaurants.json")
+        .then((res) => {
+          if (!res.ok) throw new Error("restaurants");
+          return res.json();
+        })
+        .then((data) => {
+          restaurantsCache = data.restaurants || [];
+          return restaurantsCache;
+        })
+        .catch((err) => {
+          restaurantsLoading = null;
+          throw err;
+        });
+    }
+    return restaurantsLoading;
+  }
+
+  let demosCache = null;
+  let demosLoading = null;
+  function ensureDemos() {
+    if (demosCache) return Promise.resolve(demosCache);
+    if (!demosLoading) {
+      demosLoading = fetch("./data/exercise-demos.json")
+        .then((res) => {
+          if (!res.ok) throw new Error("demos");
+          return res.json();
+        })
+        .then((data) => {
+          demosCache = data;
+          return data;
+        })
+        .catch((err) => {
+          demosLoading = null;
+          throw err;
+        });
+    }
+    return demosLoading;
+  }
+
+  function exerciseFigure(name) {
+    if (!demosCache || !name) return "";
+    const demoId = demosCache.names && demosCache.names[name];
+    const demo = demoId && demosCache.demos[demoId];
+    if (!demo) return "";
+    const video = demo.video
+      ? `<a class="demo-link" href="${esc(demo.video)}" target="_blank" rel="noopener noreferrer">Watch demo</a>`
+      : `<span class="hint">Illustration only</span>`;
+    const credit = demo.videoTitle ? `<span class="hint">${esc(demo.videoTitle)}</span>` : "";
+    return `<figure class="demo" data-testid="exercise-demo">
+      <img src="${esc(demo.image)}" alt="" width="120" height="90" loading="lazy" />
+      <figcaption>${video}${credit}</figcaption>
+    </figure>`;
+  }
+
   let foodsCache = null;
   let foodsLoading = null;
   function ensureFoods() {
@@ -833,6 +892,16 @@
     return (food.portions && food.portions[0]) || { label: "100 g", grams: 100 };
   }
   function foodHitButton(food, source) {
+    if (food.restaurant) {
+      const label = food.restaurant + " " + food.name;
+      return `<button type="button" class="food-hit" data-act="pick-food" data-source="restaurant" data-fixed="1"
+        data-name="${esc(label)}" data-cal="${esc(food.calories)}" data-pro="${esc(food.protein)}"
+        data-serving="${esc(food.serving || "1 serving")}">
+        <span class="tag">${esc(food.restaurant)}</span>
+        <span class="name">${esc(food.name)}</span>
+        <span class="meta">${esc(food.serving || "1 serving")} · ${fmtNum(food.calories)} cal · ${fmtNum(food.protein, 1)} g protein</span>
+      </button>`;
+    }
     const portion = defaultPortion(food);
     const calories = Math.round((food.kcal100 * portion.grams) / 100);
     const protein = round1((food.pro100 * portion.grams) / 100);
@@ -866,13 +935,70 @@
       const list = await ensureFoods();
       const current = document.getElementById("food-search");
       if (!current || current.value.trim() !== query) return;
-      const hits = searchFoods(query, list);
+      const place = document.getElementById("food-place");
+      const placeId = place ? place.value : "";
+      const hits = placeId ? [] : searchFoods(query, list);
       box.innerHTML = hits.length
         ? `<p class="result-label">Common foods</p>${hits.map((food) => foodHitButton(food, "usda")).join("")}`
-        : `<p class="hint">No common foods match.</p>`;
+        : placeId
+          ? ""
+          : `<p class="hint">No common foods match.</p>`;
+      renderRestaurantMatches(query, placeId);
     } catch (err) {
       box.innerHTML = `<p class="hint">Common foods could not be loaded. You can still type the food below.</p>`;
     }
+  }
+
+  function renderRestaurantMatches(query, placeId) {
+    const box = document.getElementById("restaurant-results");
+    if (!box) return;
+    const tokens = query.toLowerCase().split(/\s+/).filter(Boolean);
+    if (!restaurantsCache) {
+      box.innerHTML = "";
+      ensureRestaurants()
+        .then(() => {
+          const current = document.getElementById("food-search");
+          if (current && current.value.trim().toLowerCase() === query.toLowerCase()) {
+            fillRestaurantFilter();
+            renderRestaurantMatches(query, placeId);
+          }
+        })
+        .catch(() => {
+          box.innerHTML = "";
+        });
+      return;
+    }
+    fillRestaurantFilter();
+    const hits = [];
+    restaurantsCache.forEach((restaurant) => {
+      if (placeId && restaurant.id !== placeId) return;
+      restaurant.items.forEach((item) => {
+        const hay = (restaurant.name + " " + item.name).toLowerCase();
+        if (!tokens.every((token) => hay.includes(token))) return;
+        let score = 0;
+        if (item.name.toLowerCase().startsWith(tokens[0])) score += 3;
+        score -= item.name.length / 80;
+        hits.push({ score, food: Object.assign({ restaurant: restaurant.name }, item) });
+      });
+    });
+    hits.sort((a, b) => b.score - a.score || a.food.name.localeCompare(b.food.name));
+    const top = hits.slice(0, 8).map((hit) => hit.food);
+    box.innerHTML = top.length
+      ? `<p class="result-label">Restaurant menus</p>${top.map((food) => foodHitButton(food, "restaurant")).join("")}`
+      : `<p class="hint">No restaurant items match.</p>`;
+  }
+
+  function fillRestaurantFilter() {
+    const select = document.getElementById("food-place");
+    if (!select || select.dataset.ready === "1" || !restaurantsCache) return;
+    const current = select.value;
+    select.innerHTML =
+      `<option value="">All restaurants and common foods</option>` +
+      restaurantsCache
+        .map((restaurant) => `<option value="${esc(restaurant.id)}">${esc(restaurant.name)}</option>`)
+        .join("");
+    select.value = current;
+    select.dataset.ready = "1";
   }
 
   async function searchBrands(query) {
@@ -952,6 +1078,36 @@
   }
 
   function applyFoodBase(base) {
+    if (base.fixed) {
+      const serving = base.serving || "1 serving";
+      const units = [{ key: "each", label: serving, gramsEach: 0 }];
+      ui.foodBase = {
+        name: base.name,
+        fixed: true,
+        perCalories: Number(base.calories) || 0,
+        perProtein: Number(base.protein) || 0,
+        servingLabel: serving,
+        units,
+      };
+      const name = document.getElementById("food-name");
+      const box = document.getElementById("serving-adjust");
+      const unitSelect = document.getElementById("food-unit");
+      const amount = document.getElementById("food-servings");
+      if (name) name.value = base.name;
+      if (unitSelect) {
+        unitSelect.innerHTML = `<option value="each">${esc(serving)}</option>`;
+        unitSelect.disabled = false;
+        unitSelect.value = "each";
+      }
+      if (amount) {
+        amount.disabled = false;
+        const remembered = store.data.foodUses[String(base.name).toLowerCase()];
+        amount.value = remembered && remembered.unit === "each" ? String(remembered.amount) : "1";
+      }
+      if (box) box.hidden = false;
+      refreshQty();
+      return;
+    }
     let portions = base.portions;
     if ((!portions || !portions.length) && base.grams) {
       portions = [{ label: base.serving || "1 serving", grams: Number(base.grams) }];
@@ -1003,6 +1159,14 @@
     const pro = document.getElementById("food-pro");
     const label = document.getElementById("serving-label");
     if (!(amount > 0) || !unit) return;
+    if (ui.foodBase.fixed) {
+      const calories = Math.round(ui.foodBase.perCalories * amount);
+      const protein = round1(ui.foodBase.perProtein * amount);
+      if (cal) cal.value = String(calories);
+      if (pro) pro.value = String(protein);
+      if (label) label.textContent = quantityLabel(amount, unit) + " · " + calories + " cal · " + protein + " g protein";
+      return;
+    }
     const grams = unit.gramsEach * amount;
     const calories = Math.round((ui.foodBase.kcal100 * grams) / 100);
     const protein = round1((ui.foodBase.pro100 * grams) / 100);
@@ -1025,6 +1189,18 @@
     const amount = Number((document.getElementById("food-servings") || {}).value);
     const unit = selectedUnit();
     if (!(amount > 0) || !unit) return null;
+    if (ui.foodBase.fixed) {
+      return {
+        name: ui.foodBase.name,
+        amount,
+        unit: unit.key,
+        unitLabel: unit.label,
+        quantityLabel: quantityLabel(amount, unit),
+        grams: 0,
+        calories: Math.round(ui.foodBase.perCalories * amount),
+        protein: round1(ui.foodBase.perProtein * amount),
+      };
+    }
     const grams = unit.gramsEach * amount;
     return {
       name: ui.foodBase.name,
@@ -1440,6 +1616,7 @@
               </div>
               ${ex.target ? `<p class="ex-target">${esc(ex.target)}</p>` : ""}
               ${ex.cue ? `<p class="ex-cue">${esc(ex.cue)}</p>` : ""}
+              ${exerciseFigure(ex.name)}
               ${
                 last
                   ? `<div class="last-time" data-testid="last-time">
@@ -1670,6 +1847,7 @@
         <h4>${esc(name)}</h4>
         <p class="meta">${esc(exercisePrescription(ex, level))}</p>
         <p class="ex-cue" data-testid="plan-cue">${esc(ex.cue || "")}</p>
+        ${exerciseFigure(name)}
         ${suggest ? `<p class="hint">${esc(suggest)}</p>` : ""}
       </article>`;
   }
@@ -1932,8 +2110,15 @@
           : `<div class="field">
               <label for="food-search">Search foods</label>
               <input id="food-search" placeholder="Chicken, banana, brand name…" autocomplete="off" enterkeyhint="search" />
-              <p class="hint">Common foods are from USDA FoodData Central and show immediately. Brand names search Open Food Facts when you are online.</p>
+              <p class="hint">Common foods are from USDA FoodData Central and show immediately. Restaurant items are official menu servings. Brand names search Open Food Facts when you are online.</p>
             </div>
+            <div class="field">
+              <label for="food-place">Restaurant</label>
+              <select id="food-place" data-act="food-place">
+                <option value="">All restaurants and common foods</option>
+              </select>
+            </div>
+            <div id="restaurant-results" data-testid="restaurant-results"></div>
             <div id="usda-results" data-testid="usda-results"></div>
             <p id="brand-status" class="hint" data-testid="brand-status"></p>
             <div id="brand-results" data-testid="brand-results"></div>
@@ -1996,6 +2181,7 @@
         </div>
       </form>
     `);
+    if (!isEdit) ensureRestaurants().then(() => fillRestaurantFilter()).catch(() => {});
   }
 
   function openWeightSheet(date) {
@@ -2195,6 +2381,16 @@
       return;
     }
     if (act === "pick-food") {
+      if (btn.getAttribute("data-fixed") === "1") {
+        applyFoodBase({
+          fixed: true,
+          name: btn.getAttribute("data-name"),
+          calories: Number(btn.getAttribute("data-cal")),
+          protein: Number(btn.getAttribute("data-pro")),
+          serving: btn.getAttribute("data-serving") || "1 serving",
+        });
+        return;
+      }
       let portions = [];
       try {
         portions = JSON.parse(btn.getAttribute("data-portions") || "[]");
@@ -2275,13 +2471,11 @@
       ui.planSession = null;
       ui.workoutsMode = "plans";
       render();
-      if (!plansCache) {
-        ensurePlans()
-          .then(() => {
-            if (ui.workoutsMode === "plans") render();
-          })
-          .catch(() => toast("Could not load plans"));
-      }
+      Promise.all([plansCache ? Promise.resolve() : ensurePlans(), demosCache ? Promise.resolve() : ensureDemos()])
+        .then(() => {
+          if (ui.workoutsMode === "plans") render();
+        })
+        .catch(() => toast("Could not load plans"));
       return;
     }
     if (act === "close-plans") {
@@ -2415,6 +2609,11 @@
     const el = event.target;
     const act = el.getAttribute && el.getAttribute("data-act");
     if (!act) return;
+    if (act === "food-place") {
+      const search = document.getElementById("food-search");
+      if (search) scheduleFoodSearch(search.value);
+      return;
+    }
     if (act === "food-unit") {
       refreshQty();
       return;
@@ -2590,6 +2789,8 @@
     });
     render();
     ensurePlans().catch(() => {});
+    ensureDemos().catch(() => {});
+    ensureRestaurants().catch(() => {});
     if ("serviceWorker" in navigator) {
       // Relative script and scope follow the page, so /Fittrack/ on GitHub Pages
       // registers https://…/Fittrack/sw.js with scope https://…/Fittrack/.

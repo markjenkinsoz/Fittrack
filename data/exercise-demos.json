@@ -1,0 +1,219 @@
+{
+  "attribution": "Line drawings were created for FitTrack and are original. Demo links open YouTube videos that were checked with YouTube oEmbed on 2026-11-18. Some links are full routines that include the movement, not a single-move clip.",
+  "demos": {
+    "squat": {
+      "title": "squat",
+      "image": "images/exercises/squat.svg",
+      "video": "https://www.youtube.com/watch?v=sOUCmU27mjE",
+      "videoTitle": "Whole Body Workout for Beginners",
+      "videoBy": "OPEX Bristol"
+    },
+    "bench": {
+      "title": "bench",
+      "image": "images/exercises/bench.svg"
+    },
+    "row": {
+      "title": "row",
+      "image": "images/exercises/row.svg",
+      "video": "https://www.youtube.com/watch?v=sOUCmU27mjE",
+      "videoTitle": "Whole Body Workout for Beginners",
+      "videoBy": "OPEX Bristol"
+    },
+    "hinge": {
+      "title": "hinge",
+      "image": "images/exercises/hinge.svg",
+      "video": "https://www.youtube.com/watch?v=ZEnWV4kguKc",
+      "videoTitle": "How to do romanian deadlifts safely",
+      "videoBy": "Jack Hanrahan Fitness"
+    },
+    "press": {
+      "title": "press",
+      "image": "images/exercises/press.svg"
+    },
+    "dead-bug": {
+      "title": "dead bug",
+      "image": "images/exercises/dead-bug.svg",
+      "video": "https://www.youtube.com/watch?v=99ewh8IACrA",
+      "videoTitle": "Ultimate Ab & Core Workout: Bird Dog, Dead Bug, & Bridge",
+      "videoBy": "Andrew's Fitness Training"
+    },
+    "figure4": {
+      "title": "figure4",
+      "image": "images/exercises/figure4.svg"
+    },
+    "bike": {
+      "title": "bike",
+      "image": "images/exercises/bike.svg"
+    },
+    "open-book": {
+      "title": "open book",
+      "image": "images/exercises/open-book.svg"
+    },
+    "split": {
+      "title": "split",
+      "image": "images/exercises/split.svg",
+      "video": "https://www.youtube.com/watch?v=EAO2twIivhs",
+      "videoTitle": "35 Min Strength Training at Home Full Body Workout with Dumbbells",
+      "videoBy": "HASfit"
+    },
+    "pushup": {
+      "title": "pushup",
+      "image": "images/exercises/pushup.svg"
+    },
+    "bridge": {
+      "title": "bridge",
+      "image": "images/exercises/bridge.svg",
+      "video": "https://www.youtube.com/watch?v=99ewh8IACrA",
+      "videoTitle": "Ultimate Ab & Core Workout: Bird Dog, Dead Bug, & Bridge",
+      "videoBy": "Andrew's Fitness Training"
+    },
+    "carry": {
+      "title": "carry",
+      "image": "images/exercises/carry.svg",
+      "video": "https://www.youtube.com/watch?v=y1r9toPQNkM",
+      "videoTitle": "8 Best Dumbbell Exercises Ever",
+      "videoBy": "ATHLEAN-X"
+    },
+    "bird-dog": {
+      "title": "bird dog",
+      "image": "images/exercises/bird-dog.svg",
+      "video": "https://www.youtube.com/watch?v=99ewh8IACrA",
+      "videoTitle": "Ultimate Ab & Core Workout: Bird Dog, Dead Bug, & Bridge",
+      "videoBy": "Andrew's Fitness Training"
+    },
+    "hip-flexor": {
+      "title": "hip flexor",
+      "image": "images/exercises/hip-flexor.svg"
+    },
+    "ankle": {
+      "title": "ankle",
+      "image": "images/exercises/ankle.svg"
+    },
+    "curl": {
+      "title": "curl",
+      "image": "images/exercises/curl.svg"
+    },
+    "clam": {
+      "title": "clam",
+      "image": "images/exercises/clam.svg"
+    },
+    "hamstring": {
+      "title": "hamstring",
+      "image": "images/exercises/hamstring.svg"
+    },
+    "breathe": {
+      "title": "breathe",
+      "image": "images/exercises/breathe.svg"
+    },
+    "halo": {
+      "title": "halo",
+      "image": "images/exercises/halo.svg",
+      "video": "https://www.youtube.com/watch?v=Sci3lijQBmk",
+      "videoTitle": "Kettlebell Halo Tutorial",
+      "videoBy": "Brittany van Schravendijk"
+    },
+    "cat-cow": {
+      "title": "cat cow",
+      "image": "images/exercises/cat-cow.svg",
+      "video": "https://www.youtube.com/watch?v=Dq1XBAkIZEM",
+      "videoTitle": "Adaptive Yoga for Kids",
+      "videoBy": "National Center on Health, Physical Activity and Disability"
+    },
+    "knee-rock": {
+      "title": "knee rock",
+      "image": "images/exercises/knee-rock.svg"
+    },
+    "thoracic": {
+      "title": "thoracic",
+      "image": "images/exercises/thoracic.svg"
+    },
+    "side-lie": {
+      "title": "side lie",
+      "image": "images/exercises/side-lie.svg"
+    }
+  },
+  "names": {
+    "Easy bike spin": "bike",
+    "Open book rotation": "open-book",
+    "Goblet squat": "squat",
+    "Squat to a bench": "squat",
+    "Goblet squat, pause": "squat",
+    "Double dumbbell squat": "squat",
+    "Dumbbell bench press": "bench",
+    "Dumbbell floor press": "bench",
+    "Dumbbell bench press, slower lower": "bench",
+    "Dumbbell bench press, fuller range": "bench",
+    "One-arm dumbbell row": "row",
+    "One-arm row, knee on bench": "row",
+    "One-arm row, torso flatter": "row",
+    "One-arm row, pause at the hip": "row",
+    "Dumbbell Romanian deadlift": "hinge",
+    "Hip hinge to the bench": "hinge",
+    "Kettlebell Romanian deadlift": "hinge",
+    "Seated dumbbell press": "press",
+    "Seated dumbbell press, partial": "press",
+    "Half-kneeling one-arm press": "press",
+    "Dead bug": "dead-bug",
+    "Heel slide": "dead-bug",
+    "Dead bug, short lever": "dead-bug",
+    "Dead bug, opposite arm and leg": "dead-bug",
+    "Figure-4 stretch": "figure4",
+    "Easy bike cool-down": "bike",
+    "Hip hinge drill": "hinge",
+    "Split squat": "split",
+    "Split squat, hands on bench": "split",
+    "Split squat with dumbbells": "split",
+    "Rear-foot elevated split squat": "split",
+    "Incline push-up on bench": "pushup",
+    "Bench-supported dumbbell row": "row",
+    "Row, chest supported on an incline if you prop the bench": "row",
+    "One-arm row, hand on bench": "row",
+    "One-arm row, pause": "row",
+    "Glute bridge": "bridge",
+    "Glute bridge, short range": "bridge",
+    "Dumbbell glute bridge": "bridge",
+    "Farmer march": "carry",
+    "Farmer march, one light dumbbell": "carry",
+    "Farmer march, two light dumbbells": "carry",
+    "Suitcase march, one kettlebell": "carry",
+    "Bird dog": "bird-dog",
+    "Bird dog, arms only": "bird-dog",
+    "Bird dog, slow pause": "bird-dog",
+    "Gentle hip flexor stretch": "hip-flexor",
+    "Ankle rocks": "ankle",
+    "Kettlebell goblet squat": "squat",
+    "Kettlebell goblet squat, pause": "squat",
+    "Incline push-up": "pushup",
+    "Incline push-up, higher hands": "pushup",
+    "Incline push-up, slower lower": "pushup",
+    "Kettlebell deadlift": "hinge",
+    "Kettlebell deadlift from a raised step": "hinge",
+    "Two-dumbbell deadlift": "hinge",
+    "Seated hammer curl": "curl",
+    "Seated hammer curl, light": "curl",
+    "Seated hammer curl, pause": "curl",
+    "Side-lying clam": "clam",
+    "Side-lying clam, small range": "clam",
+    "Side-lying clam, slow": "clam",
+    "Hamstring stretch": "hamstring",
+    "Quiet breathing": "breathe",
+    "Kettlebell deadlift, light bell": "hinge",
+    "Kettlebell deadlift, slightly heavier": "hinge",
+    "Bodyweight squat": "squat",
+    "Kettlebell halo": "halo",
+    "Kettlebell halo, very light": "halo",
+    "Kettlebell halo, slower": "halo",
+    "Kettlebell row": "row",
+    "Kettlebell row, supported": "row",
+    "Kettlebell row, pause": "row",
+    "Glute bridge, pause": "bridge",
+    "Bike warm-up": "bike",
+    "Steady bike": "bike",
+    "Bike cool-down": "bike",
+    "Bike intervals": "bike",
+    "Supine knee rocks": "knee-rock",
+    "Cat-cow": "cat-cow",
+    "Thoracic reach": "thoracic",
+    "Side-lying wind-down": "side-lie"
+  }
+}
