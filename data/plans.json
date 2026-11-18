@@ -1,0 +1,134 @@
+{
+  "disclaimer": "Get your doctor's OK before you start, and again before you make workouts harder. That is especially important after surgery. You had abdominal surgery in late September 2026, so ease into heavy core work and heavy lifting. Keep the effort controlled. Stop for sharp pain, pulling around the incision, dizziness, or unusual shortness of breath. This is a training template, not medical advice.",
+  "weekNote": "Sample week: 3 strength days, 2 recumbent-bike days, and mobility. Sunday is rest. Swap Friday for kettlebell conditioning when you want a circuit instead of another strength session.",
+  "week": [
+    {"day": "Monday", "session": "strength-a"},
+    {"day": "Tuesday", "session": "bike-steady"},
+    {"day": "Wednesday", "session": "strength-b"},
+    {"day": "Thursday", "session": "mobility"},
+    {"day": "Friday", "session": "strength-c"},
+    {"day": "Saturday", "session": "bike-intervals"},
+    {"day": "Sunday", "session": null}
+  ],
+  "sessions": [
+    {
+      "id": "strength-a",
+      "plan": "Full-body strength",
+      "name": "Strength A",
+      "blurb": "Squat, press, row, and hinge with dumbbells, a kettlebell, and the bench. Slow tempo, full control.",
+      "equipment": "Dumbbells, kettlebell, bench",
+      "exercises": [
+        {"name": "Easy bike spin", "role": "warmup", "mode": "minutes", "minutes": 4, "cue": "Light resistance on the recumbent bike. You should talk in full sentences."},
+        {"name": "Open book rotation", "role": "warmup", "mode": "fixed", "sets": 1, "reps": 6, "cue": "Lie on your side on the mat. Open the top arm slowly. Move only as far as the ribs feel easy."},
+        {"name": "Goblet squat", "role": "main", "mode": "strength", "regression": "Squat to a bench", "progression": "Goblet squat, pause", "advanced": "Double dumbbell squat", "cue": "Sit between your hips and stand tall. Knees track over mid-foot. Use the bench if you want a target."},
+        {"name": "Dumbbell bench press", "role": "main", "mode": "strength", "regression": "Dumbbell floor press", "progression": "Dumbbell bench press, slower lower", "advanced": "Dumbbell bench press, fuller range", "cue": "Feet down, light arch, lower until upper arms are near the bench. Stop before the shoulder pinches."},
+        {"name": "One-arm dumbbell row", "role": "main", "mode": "strength", "regression": "One-arm row, knee on bench", "progression": "One-arm row, torso flatter", "advanced": "One-arm row, pause at the hip", "cue": "Support yourself on the bench. Pull the elbow toward the hip, not the ceiling."},
+        {"name": "Dumbbell Romanian deadlift", "role": "main", "mode": "strength", "regression": "Hip hinge to the bench", "progression": "Dumbbell Romanian deadlift", "advanced": "Kettlebell Romanian deadlift", "cue": "Soft knees, push hips back, stop when the hamstrings tighten. Keep the weight light while the abdomen is still settling."},
+        {"name": "Seated dumbbell press", "role": "main", "mode": "strength", "regression": "Seated dumbbell press, partial", "progression": "Seated dumbbell press", "advanced": "Half-kneeling one-arm press", "cue": "Sit tall on the bench. Press up without shrugging. Use a partial range if the shoulder complains."},
+        {"name": "Dead bug", "role": "main", "mode": "strength", "regression": "Heel slide", "progression": "Dead bug, short lever", "advanced": "Dead bug, opposite arm and leg", "cue": "Small range. Low back stays gently down. Stop if you feel the incision pull. No sit-ups."},
+        {"name": "Figure-4 stretch", "role": "cooldown", "mode": "hold", "seconds": 30, "cue": "On your back, ankle over the opposite knee. Hold in seconds in the reps box. Weight stays 0. Ease off if the hip pinches."},
+        {"name": "Easy bike cool-down", "role": "cooldown", "mode": "minutes", "minutes": 3, "cue": "Very easy spin. Breathe through the nose if you can."}
+      ]
+    },
+    {
+      "id": "strength-b",
+      "plan": "Full-body strength",
+      "name": "Strength B",
+      "blurb": "Split squat, floor or bench press, hinge, and a short carry. Stay joint-friendly.",
+      "equipment": "Dumbbells, kettlebell, bench",
+      "exercises": [
+        {"name": "Easy bike spin", "role": "warmup", "mode": "minutes", "minutes": 4, "cue": "Easy recumbent spin. Shoulders relaxed, light hands."},
+        {"name": "Hip hinge drill", "role": "warmup", "mode": "fixed", "sets": 1, "reps": 8, "cue": "Hands on thighs, push hips back, then stand. No load."},
+        {"name": "Split squat", "role": "main", "mode": "strength", "regression": "Split squat, hands on bench", "progression": "Split squat with dumbbells", "advanced": "Rear-foot elevated split squat", "cue": "Short step, front heel down, knee tracks over the toes. Hold the bench if balance wobbles."},
+        {"name": "Dumbbell floor press", "role": "main", "mode": "strength", "regression": "Incline push-up on bench", "progression": "Dumbbell floor press", "advanced": "Dumbbell bench press", "cue": "Elbows stop on the mat so the shoulder stays in a comfortable range."},
+        {"name": "Bench-supported dumbbell row", "role": "main", "mode": "strength", "regression": "Row, chest supported on an incline if you prop the bench", "progression": "One-arm row, hand on bench", "advanced": "One-arm row, pause", "cue": "Brace lightly. Do not hold your breath hard. Pull to the hip pocket."},
+        {"name": "Glute bridge", "role": "main", "mode": "strength", "regression": "Glute bridge, short range", "progression": "Glute bridge", "advanced": "Dumbbell glute bridge", "cue": "Drive through the heels. Ribs stay down. Skip the dumbbell if the abdomen feels strained."},
+        {"name": "Farmer march", "role": "main", "mode": "strength", "regression": "Farmer march, one light dumbbell", "progression": "Farmer march, two light dumbbells", "advanced": "Suitcase march, one kettlebell", "cue": "Tall posture, short steps. Keep the load modest. Stop if you have to brace so hard the incision area hurts."},
+        {"name": "Bird dog", "role": "main", "mode": "strength", "regression": "Bird dog, arms only", "progression": "Bird dog", "advanced": "Bird dog, slow pause", "cue": "Hips stay level. Reach only as far as the low back stays quiet."},
+        {"name": "Gentle hip flexor stretch", "role": "cooldown", "mode": "hold", "seconds": 20, "cue": "Half kneeling on the mat, tuck the pelvis slightly. Short hold. Skip it if the abdomen pulls."},
+        {"name": "Easy bike cool-down", "role": "cooldown", "mode": "minutes", "minutes": 3, "cue": "Easy spin until breathing is quiet."}
+      ]
+    },
+    {
+      "id": "strength-c",
+      "plan": "Full-body strength",
+      "name": "Strength C",
+      "blurb": "Third strength day. Same equipment, slightly different angles, still controlled.",
+      "equipment": "Dumbbells, kettlebell, bench, mat",
+      "exercises": [
+        {"name": "Easy bike spin", "role": "warmup", "mode": "minutes", "minutes": 4, "cue": "Easy spin. Add no resistance until the legs feel warm."},
+        {"name": "Ankle rocks", "role": "warmup", "mode": "fixed", "sets": 1, "reps": 8, "cue": "Stand at the bench, rock the knee gently over the toes. Hold the bench."},
+        {"name": "Goblet squat", "role": "main", "mode": "strength", "regression": "Squat to a bench", "progression": "Kettlebell goblet squat", "advanced": "Kettlebell goblet squat, pause", "cue": "Hold one kettlebell at the chest. If that feels heavy, use an empty-hand squat to the bench."},
+        {"name": "Incline push-up", "role": "main", "mode": "strength", "regression": "Incline push-up, higher hands", "progression": "Incline push-up on bench", "advanced": "Incline push-up, slower lower", "cue": "Hands on the bench, body in a straight line. Bend the knees if the shoulders or abdomen complain."},
+        {"name": "Kettlebell deadlift", "role": "main", "mode": "strength", "regression": "Kettlebell deadlift from a raised step", "progression": "Kettlebell deadlift", "advanced": "Two-dumbbell deadlift", "cue": "Hinge, grab the bell, stand tall. The bell can start on a low stack of books or the bench edge if the floor feels too far."},
+        {"name": "Seated hammer curl", "role": "main", "mode": "strength", "regression": "Seated hammer curl, light", "progression": "Seated hammer curl", "advanced": "Seated hammer curl, pause", "cue": "Sit so the low back does not have to work. Elbows stay near the ribs."},
+        {"name": "Side-lying clam", "role": "main", "mode": "strength", "regression": "Side-lying clam, small range", "progression": "Side-lying clam", "advanced": "Side-lying clam, slow", "cue": "Hips stacked, heels together, small lift. No weight."},
+        {"name": "Dead bug", "role": "main", "mode": "strength", "regression": "Heel slide", "progression": "Dead bug, short lever", "advanced": "Dead bug, opposite arm and leg", "cue": "Exhale as the leg reaches. Keep the range small. This is not a crunch."},
+        {"name": "Hamstring stretch", "role": "cooldown", "mode": "hold", "seconds": 30, "cue": "On your back, one knee bent, hold the thigh. Log seconds. Do not pull the leg straight if the back rounds."},
+        {"name": "Quiet breathing", "role": "cooldown", "mode": "minutes", "minutes": 2, "cue": "On the mat, one hand on the belly, easy breaths. No forceful bracing."}
+      ]
+    },
+    {
+      "id": "kb-conditioning",
+      "plan": "Kettlebell conditioning",
+      "name": "Kettlebell circuit",
+      "blurb": "Slow kettlebell circuit. Rounds and rest follow your level. Swings are a later option, not the default.",
+      "equipment": "Kettlebell, mat",
+      "exercises": [
+        {"name": "Easy bike spin", "role": "warmup", "mode": "minutes", "minutes": 3, "cue": "Short easy spin before you pick up the bell."},
+        {"name": "Kettlebell deadlift", "role": "main", "mode": "rounds", "regression": "Kettlebell deadlift, light bell", "progression": "Kettlebell deadlift", "advanced": "Kettlebell deadlift, slightly heavier", "cue": "Brace lightly, stand tall, set the bell down each rep. Do not bounce."},
+        {"name": "Kettlebell goblet squat", "role": "main", "mode": "rounds", "regression": "Bodyweight squat", "progression": "Kettlebell goblet squat", "advanced": "Kettlebell goblet squat, pause", "cue": "Elbows inside the knees at the bottom only if that feels roomy. Otherwise stay higher."},
+        {"name": "Kettlebell halo", "role": "main", "mode": "rounds", "regression": "Kettlebell halo, very light", "progression": "Kettlebell halo", "advanced": "Kettlebell halo, slower", "cue": "Circle the bell slowly around the head. Keep the ribs stacked. Skip it if the shoulder clicks."},
+        {"name": "Kettlebell row", "role": "main", "mode": "rounds", "regression": "Kettlebell row, supported", "progression": "Kettlebell row", "advanced": "Kettlebell row, pause", "cue": "Hinge and support the free hand on the knee or bench. Pull to the hip."},
+        {"name": "Glute bridge", "role": "main", "mode": "rounds", "regression": "Glute bridge, short range", "progression": "Glute bridge", "advanced": "Glute bridge, pause", "cue": "No bell on the hips. Ribs down."},
+        {"name": "Dead bug", "role": "cooldown", "mode": "fixed", "sets": 1, "reps": 6, "cue": "Easy reps to finish. Stop if the abdomen pulls."},
+        {"name": "Easy bike cool-down", "role": "cooldown", "mode": "minutes", "minutes": 3, "cue": "Walk the heart rate down on the bike."}
+      ]
+    },
+    {
+      "id": "bike-steady",
+      "plan": "Recumbent bike",
+      "name": "Bike, steady",
+      "blurb": "Easy-to-moderate steady spin. Duration grows with your level. You should still be able to talk.",
+      "equipment": "Recumbent bike, mat",
+      "exercises": [
+        {"name": "Bike warm-up", "role": "warmup", "mode": "minutes", "minutes": 4, "cue": "Very easy. Check that the seat leaves a soft bend in the knee."},
+        {"name": "Steady bike", "role": "main", "mode": "minutes", "scale": "bike-steady", "cue": "Conversational pace. Resistance you can hold without rocking the torso."},
+        {"name": "Bike cool-down", "role": "cooldown", "mode": "minutes", "minutes": 4, "cue": "Ease the resistance off and spin lightly."},
+        {"name": "Figure-4 stretch", "role": "cooldown", "mode": "hold", "seconds": 30, "cue": "On the mat after the bike. Hold in seconds. Both sides, one after the other."}
+      ]
+    },
+    {
+      "id": "bike-intervals",
+      "plan": "Recumbent bike",
+      "name": "Bike, intervals",
+      "blurb": "Short harder efforts with easy spinning between them. Stay seated and keep the torso quiet.",
+      "equipment": "Recumbent bike, mat",
+      "exercises": [
+        {"name": "Bike warm-up", "role": "warmup", "mode": "minutes", "minutes": 5, "cue": "Easy spin. Add a few 20-second faster turns only if they feel smooth."},
+        {"name": "Bike intervals", "role": "main", "mode": "intervals", "cue": "Harder minutes are a notch above steady, not a sprint. Easy minutes are truly easy. Stay seated. Stop the set if you get dizzy."},
+        {"name": "Bike cool-down", "role": "cooldown", "mode": "minutes", "minutes": 4, "cue": "Light spin until breathing settles."},
+        {"name": "Quiet breathing", "role": "cooldown", "mode": "minutes", "minutes": 2, "cue": "On the mat. Nasal breaths if comfortable. No bracing."}
+      ]
+    },
+    {
+      "id": "mobility",
+      "plan": "Mobility and core",
+      "name": "Mat mobility",
+      "blurb": "Yoga-mat flexibility and easy core. Nothing ballistic, no sit-ups, no long levers until they feel ordinary.",
+      "equipment": "Yoga mat",
+      "exercises": [
+        {"name": "Supine knee rocks", "role": "warmup", "mode": "hold", "seconds": 30, "cue": "On your back, knees bent, rock them slowly side to side. Small range."},
+        {"name": "Cat-cow", "role": "warmup", "mode": "fixed", "sets": 1, "reps": 6, "cue": "Hands under shoulders, knees under hips. Move with the breath. Skip if wrists complain and do it seated instead."},
+        {"name": "Open book rotation", "role": "main", "mode": "fixed", "sets": 1, "reps": 5, "cue": "Side-lying. Follow the hand with your eyes. Keep the range comfortable through the ribs."},
+        {"name": "Figure-4 stretch", "role": "main", "mode": "hold", "seconds": 30, "cue": "Ankle over the knee. Hold, then switch. Do not press the knee hard."},
+        {"name": "Gentle hip flexor stretch", "role": "main", "mode": "hold", "seconds": 20, "cue": "Half kneeling. Slight pelvic tuck. Skip if the front of the abdomen pulls."},
+        {"name": "Hamstring stretch", "role": "main", "mode": "hold", "seconds": 30, "cue": "On your back, hold behind the thigh with the knee a little bent."},
+        {"name": "Thoracic reach", "role": "main", "mode": "fixed", "sets": 1, "reps": 6, "cue": "On all fours, one hand behind the head, rotate only as far as the neck stays easy."},
+        {"name": "Dead bug", "role": "main", "mode": "fixed", "sets": 2, "reps": 5, "cue": "Tiny reach of the heel. Low back stays quiet. This replaces crunches."},
+        {"name": "Side-lying wind-down", "role": "cooldown", "mode": "hold", "seconds": 30, "cue": "Lie on your side, top knee bent on the mat, breathe. Then switch."},
+        {"name": "Quiet breathing", "role": "cooldown", "mode": "minutes", "minutes": 3, "cue": "On your back, knees bent. Easy belly breaths, not a hard brace."}
+      ]
+    }
+  ]
+}

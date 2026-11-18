@@ -6,9 +6,30 @@ A personal iPhone Home Screen web app for daily calories, protein, and workouts.
 
 - Daily calorie and protein goals, with progress rings
 - Food log by day, including edit, delete, favorites, and one-tap quick add
+- Search a built-in list of common foods, or brand-name foods and barcodes when you are online
+- Daily body weight with a trend chart and an optional goal
+- Home workout plans (strength, kettlebell, recumbent bike, mobility) with a difficulty level
 - Workout log with exercises, sets (reps × lb), notes, and “last time” sets
 - 7- and 30-day history vs your goals, plus workouts per week
 - Export / import a JSON backup (Share sheet on iOS when available, otherwise a download)
+
+## Food data
+
+Common foods ship in `data/foods.json` and load when you search, not on first paint. They are derived from [USDA FoodData Central SR Legacy](https://fdc.nal.usda.gov/) (April 2018), which is public domain. Each row is a name, a serving, grams, calories, and protein. Regenerate it with:
+
+```bash
+python3 tools/generate_foods.py
+```
+
+Brand search and barcodes use the [Open Food Facts](https://world.openfoodfacts.org) public API. No API key is required. Browsers block a custom `User-Agent` header, so FitTrack identifies itself with `app_name`, `app_version`, and `app_url` on each request (`FitTrack/1.0`, https://markjenkinsoz.github.io/Fittrack/). Barcode scanning uses the iPhone `BarcodeDetector` when it exists, and a vendored [ZXing](https://github.com/zxing-js/library) build otherwise. If you are offline or nothing matches, type the food in by hand.
+
+## Weight
+
+Log weight in pounds to one decimal, with an optional note. A day holds one entry; logging that day again replaces it. The Weight tab charts the points and a 7-day moving average for 30 days, 90 days, 1 year, or all history. Set an optional goal weight in Settings to draw a goal line.
+
+## Home plans
+
+Workouts → Home plans is a static program for dumbbells, a bench, kettlebells, a yoga mat, and a recumbent bike. Levels 1–5 change sets, reps, rest, rounds, tempo, and bike work. Each session has a warm-up and a cool-down. Read the note on that screen before you start or before you make the work harder, including after surgery. “Start this workout” fills the logger with the exercises and target sets so you can record the weights you actually used.
 
 ## Run locally
 

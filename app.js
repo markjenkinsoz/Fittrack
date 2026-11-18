@@ -74,12 +74,13 @@
   function emptyData() {
     return {
       version: APP_VERSION,
-      settings: { calorieGoal: 2200, proteinGoal: 160 },
+      settings: { calorieGoal: 2200, proteinGoal: 160, weightGoal: null, planLevel: 1, levelSnoozeAt: 0 },
       days: {},
       favorites: [],
       recents: [],
       exerciseNames: [],
       workouts: [],
+      weights: {},
     };
   }
 
@@ -91,12 +92,31 @@
       const p = Number(raw.settings.proteinGoal);
       if (c > 0) data.settings.calorieGoal = Math.round(c);
       if (p > 0) data.settings.proteinGoal = p;
+      const w = Number(raw.settings.weightGoal);
+      if (w > 0) data.settings.weightGoal = Math.round(w * 10) / 10;
+      const level = Number(raw.settings.planLevel);
+      if (level >= 1 && level <= 5) data.settings.planLevel = Math.round(level);
+      const snooze = Number(raw.settings.levelSnoozeAt);
+      if (snooze > 0) data.settings.levelSnoozeAt = Math.round(snooze);
     }
     if (raw.days && typeof raw.days === "object") data.days = raw.days;
     if (Array.isArray(raw.favorites)) data.favorites = raw.favorites;
     if (Array.isArray(raw.recents)) data.recents = raw.recents;
     if (Array.isArray(raw.exerciseNames)) data.exerciseNames = raw.exerciseNames;
     if (Array.isArray(raw.workouts)) data.workouts = raw.workouts;
+    if (raw.weights && typeof raw.weights === "object") {
+      Object.keys(raw.weights).forEach((date) => {
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return;
+        const entry = raw.weights[date];
+        const lb = Number(entry && entry.lb);
+        if (!(lb > 0)) return;
+        data.weights[date] = {
+          lb: Math.round(lb * 10) / 10,
+          note: entry.note ? String(entry.note).slice(0, 140) : "",
+          updatedAt: Number(entry.updatedAt) || 0,
+        };
+      });
+    }
     return data;
   }
 
@@ -197,9 +217,75 @@
       else this._ensureFavorite(item);
       this.save();
     },
-    setGoals(calorieGoal, proteinGoal) {
+    setGoals(calorieGoal, proteinGoal, weightGoal) {
       this.data.settings.calorieGoal = Math.max(1, Math.round(numOrZero(calorieGoal) || 2200));
       this.data.settings.proteinGoal = Math.max(1, numOrZero(proteinGoal) || 160);
+      if (weightGoal === "" || weightGoal == null) this.data.settings.weightGoal = null;
+      else {
+        const w = Math.round(Number(weightGoal) * 10) / 10;
+        this.data.settings.weightGoal = w > 0 ? w : null;
+      }
+      this.save();
+    },
+    setPlanLevel(level) {
+      const n = Math.round(Number(level));
+      this.data.settings.planLevel = Math.min(5, Math.max(1, n || 1));
+      this.save();
+    },
+    setLevelSnooze(streak) {
+      this.data.settings.levelSnoozeAt = Math.max(0, Math.round(Number(streak) || 0));
+      this.save();
+    },
+    logWeight(date, lb, note) {
+      const n = Math.round(Number(lb) * 10) / 10;
+      if (!date || !(n > 0)) return;
+      this.data.weights[date] = {
+        lb: n,
+        note: String(note || "").trim().slice(0, 140),
+        updatedAt: Date.now(),
+      };
+      this.save();
+    },
+    deleteWeight(date) {
+      if (!this.data.weights[date]) return;
+      delete this.data.weights[date];
+      this.save();
+    },
+    weightEntries() {
+      return Object.keys(this.data.weights)
+        .sort()
+        .map((date) => Object.assign({ date }, this.data.weights[date]));
+    },
+    createPlannedWorkout(date, built) {
+      const w = {
+        id: uid(),
+        date,
+        notes: built.notes,
+        exercises: built.exercises.map((ex) => ({
+          id: uid(),
+          name: ex.name,
+          cue: ex.cue || "",
+          target: ex.target || "",
+          sets: ex.sets.map((set) => ({ id: uid(), reps: set.reps, weight: 0 })),
+        })),
+        planId: built.sessionId,
+        planName: built.planName,
+        level: built.level,
+        rpe: null,
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+      };
+      this.data.workouts.push(w);
+      built.exercises.forEach((ex) => this.rememberExercise(ex.name));
+      this.save();
+      return w;
+    },
+    setRpe(id, rpe) {
+      const w = this.getWorkout(id);
+      if (!w) return;
+      if (rpe !== "easy" && rpe !== "right" && rpe !== "hard") return;
+      w.rpe = rpe;
+      w.updatedAt = Date.now();
       this.save();
     },
     rememberExercise(name) {
@@ -348,8 +434,22 @@
     date: dateKey(),
     workoutId: null,
     historyRange: 7,
+    weightRange: "30",
+    workoutsMode: "list",
+    planSession: null,
     sheet: null,
+    foodBase: null,
   };
+
+  const PLAN_LEVELS = [
+    { id: 1, name: "Level 1", label: "Beginner", sets: 2, reps: 8, repLabel: "8", rest: "90s", tempo: "3-1-1", rounds: 2, bikeSteady: 12, intervals: "4 rounds · 1 min harder / 2 min easy", intervalRounds: 4 },
+    { id: 2, name: "Level 2", label: "Easy", sets: 2, reps: 10, repLabel: "10", rest: "75s", tempo: "3-1-1", rounds: 3, bikeSteady: 18, intervals: "5 rounds · 1 min harder / 2 min easy", intervalRounds: 5 },
+    { id: 3, name: "Level 3", label: "Moderate", sets: 3, reps: 10, repLabel: "8–12", rest: "75s", tempo: "3-1-2", rounds: 3, bikeSteady: 25, intervals: "5 rounds · 2 min harder / 2 min easy", intervalRounds: 5 },
+    { id: 4, name: "Level 4", label: "Steady", sets: 3, reps: 8, repLabel: "8–10", rest: "60s", tempo: "3-1-1", rounds: 4, bikeSteady: 30, intervals: "6 rounds · 2 min harder / 1 min easy", intervalRounds: 6 },
+    { id: 5, name: "Level 5", label: "Advanced", sets: 4, reps: 8, repLabel: "6–10", rest: "60s", tempo: "2-1-1", rounds: 5, bikeSteady: 40, intervals: "6 rounds · 3 min harder / 1 min easy", intervalRounds: 6 },
+  ];
+  const OFF_QUERY =
+    "app_name=FitTrack&app_version=1.0&app_url=" + encodeURIComponent("https://markjenkinsoz.github.io/Fittrack/");
 
   const els = {
     main: document.getElementById("main"),
@@ -369,8 +469,22 @@
     }, 2200);
   }
 
+  let scanStop = null;
+  function stopScan() {
+    const stop = scanStop;
+    scanStop = null;
+    if (!stop) return;
+    try {
+      stop();
+    } catch (err) {
+      /* camera already stopped */
+    }
+  }
+
   function closeSheet() {
+    stopScan();
     ui.sheet = null;
+    ui.foodBase = null;
     els.sheet.hidden = true;
     els.sheet.innerHTML = "";
     els.overlay.hidden = true;
@@ -452,6 +566,539 @@
       </div>`;
   }
 
+  function fmtLb(n) {
+    return (Math.round(Number(n) * 10) / 10).toFixed(1);
+  }
+  function round1(n) {
+    return Math.round(Number(n) * 10) / 10;
+  }
+  function finiteOrNull(v) {
+    const n = Number(v);
+    return Number.isFinite(n) ? n : null;
+  }
+  function daysBetween(a, b) {
+    return Math.round((parseKey(b) - parseKey(a)) / 86400000);
+  }
+  function planLevel() {
+    return PLAN_LEVELS.find((level) => level.id === store.data.settings.planLevel) || PLAN_LEVELS[0];
+  }
+  function easyStreak() {
+    const rated = store.data.workouts
+      .filter((w) => w.planId && w.rpe)
+      .slice()
+      .sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
+    let streak = 0;
+    for (const workout of rated) {
+      if (workout.rpe !== "easy") break;
+      streak += 1;
+    }
+    return streak;
+  }
+  function hardStreak() {
+    const rated = store.data.workouts
+      .filter((w) => w.planId && w.rpe)
+      .slice()
+      .sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
+    let streak = 0;
+    for (const workout of rated) {
+      if (workout.rpe !== "hard") break;
+      streak += 1;
+    }
+    return streak;
+  }
+
+  let foodsCache = null;
+  let foodsLoading = null;
+  function ensureFoods() {
+    if (foodsCache) return Promise.resolve(foodsCache);
+    if (!foodsLoading) {
+      foodsLoading = fetch("./data/foods.json")
+        .then((res) => {
+          if (!res.ok) throw new Error("foods");
+          return res.json();
+        })
+        .then((data) => {
+          foodsCache = (data.f || []).map((row) => ({
+            name: row[0],
+            serving: row[1],
+            grams: Number(row[2]) || 0,
+            calories: Number(row[3]) || 0,
+            protein: Number(row[4]) || 0,
+            hay: String(row[0]).toLowerCase(),
+          }));
+          return foodsCache;
+        })
+        .catch((err) => {
+          foodsLoading = null;
+          throw err;
+        });
+    }
+    return foodsLoading;
+  }
+
+  let plansCache = null;
+  let plansLoading = null;
+  function ensurePlans() {
+    if (plansCache) return Promise.resolve(plansCache);
+    if (!plansLoading) {
+      plansLoading = fetch("./data/plans.json")
+        .then((res) => {
+          if (!res.ok) throw new Error("plans");
+          return res.json();
+        })
+        .then((data) => {
+          plansCache = data;
+          return data;
+        })
+        .catch((err) => {
+          plansLoading = null;
+          throw err;
+        });
+    }
+    return plansLoading;
+  }
+
+  function searchFoods(query, list) {
+    const tokens = query.toLowerCase().trim().split(/\s+/).filter(Boolean);
+    if (!tokens.length || !list) return [];
+    const hits = [];
+    for (const food of list) {
+      if (!tokens.every((token) => food.hay.includes(token))) continue;
+      let score = 0;
+      if (food.hay.startsWith(tokens[0])) score += 4;
+      const words = food.hay.split(/[^a-z0-9]+/);
+      if (tokens.every((token) => words.includes(token))) score += 2;
+      score -= food.name.length / 200;
+      hits.push({ food, score });
+    }
+    hits.sort((a, b) => b.score - a.score || a.food.name.localeCompare(b.food.name));
+    return hits.slice(0, 8).map((hit) => hit.food);
+  }
+
+  function productToBase(product) {
+    if (!product || typeof product !== "object") return null;
+    const nutriments = product.nutriments || {};
+    const brand = String(product.brands || "").split(",")[0].trim();
+    const productName = String(product.product_name || product.product_name_en || "").trim();
+    const name = (brand && productName ? brand + " " + productName : productName || brand).slice(0, 140);
+    if (!name) return null;
+    const grams = finiteOrNull(product.serving_quantity);
+    let calories = finiteOrNull(nutriments["energy-kcal_serving"]);
+    let protein = finiteOrNull(nutriments["proteins_serving"]);
+    let serving = product.serving_size ? String(product.serving_size) : "";
+    let gramOut = grams && grams > 0 ? grams : 0;
+    if (!(calories > 0)) {
+      const per100 = finiteOrNull(nutriments["energy-kcal_100g"]);
+      if (!(per100 > 0)) return null;
+      if (!(gramOut > 0)) gramOut = 100;
+      calories = (per100 * gramOut) / 100;
+      const protein100 = finiteOrNull(nutriments["proteins_100g"]);
+      protein = protein100 == null ? 0 : (protein100 * gramOut) / 100;
+      if (!serving) serving = gramOut + " g";
+    } else if (protein == null) {
+      const protein100 = finiteOrNull(nutriments["proteins_100g"]);
+      protein = gramOut > 0 && protein100 != null ? (protein100 * gramOut) / 100 : 0;
+    }
+    return {
+      name,
+      calories: Math.round(calories),
+      protein: round1(protein || 0),
+      grams: gramOut ? Math.round(gramOut) : 0,
+      serving: serving || "1 serving",
+    };
+  }
+
+  function foodHitButton(food, source) {
+    return `<button type="button" class="food-hit" data-act="pick-food" data-source="${esc(source)}"
+      data-name="${esc(food.name)}" data-cal="${esc(food.calories)}" data-pro="${esc(food.protein)}"
+      data-grams="${esc(food.grams || 0)}" data-serving="${esc(food.serving || "")}">
+      <span class="name">${esc(food.name)}</span>
+      <span class="meta">${esc(food.serving || "1 serving")}${food.grams ? " · " + esc(food.grams) + " g" : ""} · ${fmtNum(food.calories)} cal · ${fmtNum(food.protein, 1)} g</span>
+    </button>`;
+  }
+
+  let searchTimer = 0;
+  let searchSeq = 0;
+  function scheduleFoodSearch(value) {
+    const query = String(value || "").trim();
+    renderUsdaMatches(query);
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(() => searchBrands(query), 250);
+  }
+
+  async function renderUsdaMatches(query) {
+    const box = document.getElementById("usda-results");
+    if (!box) return;
+    if (query.length < 2) {
+      box.innerHTML = "";
+      return;
+    }
+    box.innerHTML = `<p class="hint">Looking up common foods…</p>`;
+    try {
+      const list = await ensureFoods();
+      const current = document.getElementById("food-search");
+      if (!current || current.value.trim() !== query) return;
+      const hits = searchFoods(query, list);
+      box.innerHTML = hits.length
+        ? `<p class="result-label">Common foods</p>${hits.map((food) => foodHitButton(food, "usda")).join("")}`
+        : `<p class="hint">No common foods match.</p>`;
+    } catch (err) {
+      box.innerHTML = `<p class="hint">Common foods could not be loaded. You can still type the food below.</p>`;
+    }
+  }
+
+  async function searchBrands(query) {
+    const status = document.getElementById("brand-status");
+    const box = document.getElementById("brand-results");
+    if (!status || !box) return;
+    if (query.length < 2) {
+      status.textContent = "";
+      box.innerHTML = "";
+      return;
+    }
+    if (typeof navigator.onLine === "boolean" && navigator.onLine === false) {
+      status.textContent = "You're offline. Brand search needs a connection. Common foods still work.";
+      box.innerHTML = "";
+      return;
+    }
+    const seq = ++searchSeq;
+    status.textContent = "Searching brands…";
+    box.innerHTML = "";
+    try {
+      const url =
+        "https://world.openfoodfacts.org/cgi/search.pl?search_terms=" +
+        encodeURIComponent(query) +
+        "&search_simple=1&action=process&json=1&page_size=8&fields=code,product_name,brands,nutriments,serving_size,serving_quantity&" +
+        OFF_QUERY;
+      const res = await fetch(url, { headers: { Accept: "application/json" } });
+      if (seq !== searchSeq) return;
+      if (!res.ok) throw new Error("brand search");
+      const data = await res.json();
+      const hits = (Array.isArray(data.products) ? data.products : []).map(productToBase).filter(Boolean).slice(0, 8);
+      if (!hits.length) {
+        status.textContent = "No brand matches.";
+        box.innerHTML = "";
+        return;
+      }
+      status.textContent = "Brands from Open Food Facts";
+      box.innerHTML = hits.map((food) => foodHitButton(food, "off")).join("");
+    } catch (err) {
+      if (seq !== searchSeq) return;
+      status.textContent = "Brand search is unavailable right now. Common foods and manual entry still work.";
+      box.innerHTML = "";
+    }
+  }
+
+  async function lookupBarcode(raw) {
+    const status = document.getElementById("barcode-status");
+    const code = String(raw || "").replace(/\D/g, "");
+    if (status) status.textContent = "";
+    if (code.length < 8) {
+      if (status) status.textContent = "Enter a barcode with at least 8 digits.";
+      return;
+    }
+    if (typeof navigator.onLine === "boolean" && navigator.onLine === false) {
+      if (status) status.textContent = "You're offline. Barcode lookup needs a connection.";
+      return;
+    }
+    if (status) status.textContent = "Looking up that barcode…";
+    try {
+      const url =
+        "https://world.openfoodfacts.org/api/v2/product/" +
+        encodeURIComponent(code) +
+        ".json?fields=code,product_name,brands,nutriments,serving_size,serving_quantity,status&" +
+        OFF_QUERY;
+      const res = await fetch(url, { headers: { Accept: "application/json" } });
+      if (!res.ok) throw new Error("barcode");
+      const data = await res.json();
+      const base = productToBase(data && data.product);
+      if (!base || data.status === 0) {
+        if (status) status.textContent = "No product found for that barcode. Enter the food manually.";
+        return;
+      }
+      applyFoodBase(base);
+      if (status) status.textContent = "Filled from the barcode.";
+    } catch (err) {
+      if (status) status.textContent = "Barcode lookup is unavailable. Enter the food manually.";
+    }
+  }
+
+  function applyFoodBase(base) {
+    ui.foodBase = {
+      name: base.name,
+      calories: Number(base.calories) || 0,
+      protein: Number(base.protein) || 0,
+      grams: Number(base.grams) || 0,
+      serving: base.serving || "1 serving",
+    };
+    const name = document.getElementById("food-name");
+    const cal = document.getElementById("food-cal");
+    const pro = document.getElementById("food-pro");
+    const box = document.getElementById("serving-adjust");
+    const label = document.getElementById("serving-label");
+    const servings = document.getElementById("food-servings");
+    const gramsWrap = document.getElementById("grams-wrap");
+    const grams = document.getElementById("food-grams");
+    if (name) name.value = ui.foodBase.name;
+    if (cal) cal.value = String(Math.round(ui.foodBase.calories));
+    if (pro) pro.value = String(round1(ui.foodBase.protein));
+    if (box) {
+      box.hidden = false;
+      box.querySelectorAll("input").forEach((input) => {
+        input.disabled = false;
+      });
+    }
+    if (label) {
+      label.textContent =
+        "1 × " +
+        ui.foodBase.serving +
+        (ui.foodBase.grams ? " · " + ui.foodBase.grams + " g" : "") +
+        " · " +
+        Math.round(ui.foodBase.calories) +
+        " cal · " +
+        round1(ui.foodBase.protein) +
+        " g protein";
+    }
+    if (servings) servings.value = "1";
+    if (gramsWrap && grams) {
+      if (ui.foodBase.grams > 0) {
+        gramsWrap.hidden = false;
+        grams.value = String(ui.foodBase.grams);
+      } else {
+        gramsWrap.hidden = true;
+        grams.value = "";
+      }
+    }
+  }
+
+  function scaleFromServings(servings) {
+    if (!ui.foodBase || !(servings > 0)) return;
+    const cal = document.getElementById("food-cal");
+    const pro = document.getElementById("food-pro");
+    const grams = document.getElementById("food-grams");
+    if (cal) cal.value = String(Math.round(ui.foodBase.calories * servings));
+    if (pro) pro.value = String(round1(ui.foodBase.protein * servings));
+    if (grams && ui.foodBase.grams > 0 && document.activeElement !== grams) {
+      grams.value = String(Math.round(ui.foodBase.grams * servings));
+    }
+  }
+  function scaleFromGrams(grams) {
+    if (!ui.foodBase || !(ui.foodBase.grams > 0) || !(grams > 0)) return;
+    const servings = grams / ui.foodBase.grams;
+    const servingsEl = document.getElementById("food-servings");
+    if (servingsEl && document.activeElement !== servingsEl) servingsEl.value = String(round1(servings));
+    const cal = document.getElementById("food-cal");
+    const pro = document.getElementById("food-pro");
+    if (cal) cal.value = String(Math.round(ui.foodBase.calories * servings));
+    if (pro) pro.value = String(round1(ui.foodBase.protein * servings));
+  }
+
+  function loadZXing() {
+    if (window.ZXing && window.ZXing.BrowserMultiFormatReader) return Promise.resolve(window.ZXing);
+    if (!window.__fittrackZxing) {
+      window.__fittrackZxing = new Promise((resolve, reject) => {
+        const script = document.createElement("script");
+        script.src = "vendor/zxing.min.js";
+        script.onload = () => {
+          if (window.ZXing && window.ZXing.BrowserMultiFormatReader) resolve(window.ZXing);
+          else reject(new Error("zxing"));
+        };
+        script.onerror = () => reject(new Error("zxing"));
+        document.head.appendChild(script);
+      });
+    }
+    return window.__fittrackZxing;
+  }
+
+  async function startScan() {
+    const panel = document.getElementById("scan-panel");
+    const status = document.getElementById("scan-status");
+    const video = document.getElementById("scan-video");
+    if (!panel || !video || !status) return;
+    stopScan();
+    panel.hidden = false;
+    status.textContent = "Starting the camera…";
+    let stream = window.FitTrackFakeStream || null;
+    if (!stream) {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        status.textContent = "This browser has no camera access. Type the barcode instead.";
+        return;
+      }
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: { ideal: "environment" } },
+          audio: false,
+        });
+      } catch (err) {
+        status.textContent = "The camera could not start. Type the barcode instead.";
+        return;
+      }
+    }
+    video.srcObject = stream;
+    video.muted = true;
+    video.setAttribute("playsinline", "");
+    const playPromise = video.play();
+    if (playPromise && typeof playPromise.catch === "function") playPromise.catch(() => {});
+    let stopped = false;
+    const stopTracks = () => {
+      stopped = true;
+      stream.getTracks().forEach((track) => track.stop());
+      if (video.srcObject === stream) video.srcObject = null;
+    };
+    scanStop = stopTracks;
+    const onCode = (raw) => {
+      if (!raw || stopped) return;
+      stopped = true;
+      stopScan();
+      panel.hidden = true;
+      const input = document.getElementById("food-barcode");
+      if (input) input.value = String(raw);
+      lookupBarcode(raw);
+    };
+    const Detector = window.FitTrackBarcodeDetector || window.BarcodeDetector;
+    if (!window.FitTrackForceZxing && typeof Detector === "function") {
+      let detector = null;
+      try {
+        detector = new Detector({
+          formats: ["ean_13", "ean_8", "upc_a", "upc_e", "code_128", "code_39", "qr_code"],
+        });
+      } catch (err) {
+        try {
+          detector = new Detector();
+        } catch (err2) {
+          detector = null;
+        }
+      }
+      if (detector) {
+        status.textContent = "Point the camera at a barcode.";
+        const tick = async () => {
+          if (stopped) return;
+          try {
+            const codes = await detector.detect(video);
+            if (codes && codes.length && codes[0].rawValue) {
+              onCode(codes[0].rawValue);
+              return;
+            }
+          } catch (err) {
+            /* keep scanning */
+          }
+          setTimeout(tick, 200);
+        };
+        tick();
+        return;
+      }
+    }
+    status.textContent = "Loading the barcode scanner…";
+    try {
+      const ZXing = await loadZXing();
+      if (stopped) return;
+      const reader = new ZXing.BrowserMultiFormatReader();
+      status.textContent = "Point the camera at a barcode.";
+      const controls = await reader.decodeFromStream(stream, video, (result) => {
+        if (result && result.getText) onCode(result.getText());
+      });
+      const prev = scanStop;
+      scanStop = () => {
+        try {
+          if (controls && controls.stop) controls.stop();
+        } catch (err) {
+          /* already stopped */
+        }
+        try {
+          if (reader.reset) reader.reset();
+        } catch (err) {
+          /* already reset */
+        }
+        if (prev) prev();
+      };
+    } catch (err) {
+      if (!stopped) status.textContent = "The barcode scanner could not start. Type the barcode instead.";
+    }
+  }
+
+  function chosenExerciseName(ex, level) {
+    if (ex.mode === "hold" || ex.mode === "minutes" || ex.mode === "intervals" || ex.mode === "fixed") return ex.name;
+    if (level.id <= 1) return ex.regression || ex.name;
+    if (level.id === 4) return ex.progression || ex.name;
+    if (level.id >= 5) return ex.advanced || ex.progression || ex.name;
+    return ex.name;
+  }
+  function exercisePrescription(ex, level) {
+    if (ex.mode === "minutes") {
+      const minutes = ex.scale === "bike-steady" ? level.bikeSteady : ex.minutes;
+      return minutes + " min";
+    }
+    if (ex.mode === "intervals") return level.intervals;
+    if (ex.mode === "rounds") return level.rounds + " rounds × " + level.repLabel + " · rest " + level.rest;
+    if (ex.mode === "hold") return (ex.seconds || 30) + " seconds";
+    if (ex.mode === "fixed") return (ex.sets || 1) + " × " + ex.reps;
+    return level.sets + " sets × " + level.repLabel + " · rest " + level.rest + " · tempo " + level.tempo;
+  }
+  function exerciseSets(ex, level) {
+    if (ex.mode === "minutes") {
+      const minutes = ex.scale === "bike-steady" ? level.bikeSteady : ex.minutes;
+      return [{ reps: minutes }];
+    }
+    if (ex.mode === "intervals") return [{ reps: level.intervalRounds }];
+    if (ex.mode === "rounds") return Array.from({ length: level.rounds }, () => ({ reps: level.reps }));
+    if (ex.mode === "hold") return [{ reps: ex.seconds || 30 }];
+    if (ex.mode === "fixed") return Array.from({ length: ex.sets || 1 }, () => ({ reps: ex.reps }));
+    return Array.from({ length: level.sets }, () => ({ reps: level.reps }));
+  }
+  function suggestionLine(ex) {
+    const bits = [];
+    if (ex.regression) bits.push("Easier: " + ex.regression);
+    if (ex.progression) bits.push("Harder: " + ex.progression);
+    if (ex.advanced) bits.push("Level 5: " + ex.advanced);
+    return bits.join(" · ");
+  }
+  function sessionById(id) {
+    if (!plansCache) return null;
+    return (plansCache.sessions || []).find((session) => session.id === id) || null;
+  }
+  function buildPlanWorkout(session, level) {
+    const exercises = (session.exercises || []).map((ex) => {
+      const name = chosenExerciseName(ex, level);
+      const target = exercisePrescription(ex, level);
+      let cue = ex.cue || "";
+      if (ex.mode === "minutes") cue = cue + " Log minutes in the reps box. Leave weight at 0.";
+      if (ex.mode === "hold") cue = cue + " Log the hold in the reps box, in seconds.";
+      if (ex.mode === "intervals") cue = cue + " " + level.intervals + ". Log how many rounds you finish in the reps box.";
+      return { name, cue: cue.trim(), target, sets: exerciseSets(ex, level) };
+    });
+    return {
+      sessionId: session.id,
+      planName: session.plan,
+      level: level.id,
+      notes:
+        session.plan +
+        " · " +
+        session.name +
+        " · Level " +
+        level.id +
+        "\nRest " +
+        level.rest +
+        ". Tempo " +
+        level.tempo +
+        ". " +
+        level.label +
+        ".\nEase into the load. Stop for sharp pain or pulling around a healing incision.",
+      exercises,
+    };
+  }
+
+  function weightTodayCard() {
+    const entry = store.data.weights[ui.date];
+    return `
+      <section class="weight-today" data-testid="weight-today">
+        <div>
+          <div class="k">Weight</div>
+          <div class="v">${entry ? esc(fmtLb(entry.lb)) + " lb" : "Not logged"}</div>
+        </div>
+        <button type="button" class="btn secondary slim" data-act="log-weight" aria-label="${entry ? "Edit today's weight" : "Log weight"}">${entry ? "Edit" : "Log"}</button>
+      </section>`;
+  }
+
   function renderToday() {
     const date = ui.date;
     const foods = store.foodsOn(date);
@@ -467,6 +1114,7 @@
         </div>
         <button type="button" class="icon-btn" data-act="next-day" aria-label="Next day" ${nextDisabled}>${chevron("right")}</button>
       </div>
+      ${weightTodayCard()}
       <div class="rings">
         ${ringCard("cal", totals.calories, calorieGoal, "")}
         ${ringCard("pro", totals.protein, proteinGoal, " g")}
@@ -521,6 +1169,8 @@
     return `
       <h2 class="page-title">Workouts</h2>
       <p class="sub">Log sets in pounds, and FitTrack will remember the last time you did an exercise.</p>
+      <div style="height:8px"></div>
+      <button type="button" class="btn secondary" data-act="open-plans">Home plans</button>
       <div style="height:8px"></div>
       <button type="button" class="btn wo" data-act="start-workout">Start workout</button>
       <div class="section-head"><h3>History</h3></div>
@@ -578,6 +1228,8 @@
                 <h4>${esc(ex.name)}</h4>
                 <button type="button" class="icon-btn danger" data-act="delete-exercise" data-ex-id="${esc(ex.id)}" aria-label="Remove ${esc(ex.name)}">✕</button>
               </div>
+              ${ex.target ? `<p class="ex-target">${esc(ex.target)}</p>` : ""}
+              ${ex.cue ? `<p class="ex-cue">${esc(ex.cue)}</p>` : ""}
               ${
                 last
                   ? `<div class="last-time" data-testid="last-time">
@@ -618,6 +1270,7 @@
           })
           .join("")}
       </div>
+      ${rpeBar(w)}
       <div style="height:12px"></div>
       <button type="button" class="btn wo" data-act="add-exercise">+ Add exercise</button>
       ${
@@ -629,7 +1282,9 @@
   }
 
   function renderWorkouts() {
-    return ui.workoutId ? renderWorkoutDetail() : renderWorkoutList();
+    if (ui.workoutId) return renderWorkoutDetail();
+    if (ui.workoutsMode === "plans") return renderPlans();
+    return renderWorkoutList();
   }
 
   function daysBack(n) {
@@ -753,7 +1408,11 @@
               <input id="goal-pro" type="number" inputmode="decimal" min="1" step="1" value="${esc(s.proteinGoal)}" data-act="goal-pro" />
             </div>
           </div>
-          <p class="hint">Goals save automatically and drive the rings and history charts.</p>
+          <div class="field" style="margin-top:10px">
+            <label for="goal-weight">Goal weight (lb, optional)</label>
+            <input id="goal-weight" type="number" inputmode="decimal" min="0" step="0.1" placeholder="Optional" value="${s.weightGoal ? esc(fmtLb(s.weightGoal)) : ""}" data-act="goal-weight" />
+          </div>
+          <p class="hint">Calorie and protein goals drive the rings. A goal weight draws a line on the weight chart. Leave it blank to hide the line.</p>
         </section>
         <section class="settings-card">
           <h3 style="margin:0 0 8px">Backup</h3>
@@ -779,6 +1438,255 @@
     `;
   }
 
+  function rpeBar(workout) {
+    if (!workout.planId) return "";
+    const current = workout.rpe || "";
+    return `
+      <div class="rpe" data-testid="rpe">
+        <div class="label">How did this session feel?</div>
+        <div class="seg" role="group" aria-label="Session effort">
+          <button type="button" data-act="rpe" data-rpe="easy" aria-pressed="${current === "easy"}">Too easy</button>
+          <button type="button" data-act="rpe" data-rpe="right" aria-pressed="${current === "right"}">Just right</button>
+          <button type="button" data-act="rpe" data-rpe="hard" aria-pressed="${current === "hard"}">Too hard</button>
+        </div>
+      </div>`;
+  }
+
+  function renderPlanExercise(ex, level) {
+    const name = chosenExerciseName(ex, level);
+    const suggest = suggestionLine(ex);
+    return `
+      <article class="plan-ex">
+        <h4>${esc(name)}</h4>
+        <p class="meta">${esc(exercisePrescription(ex, level))}</p>
+        <p class="ex-cue" data-testid="plan-cue">${esc(ex.cue || "")}</p>
+        ${suggest ? `<p class="hint">${esc(suggest)}</p>` : ""}
+      </article>`;
+  }
+
+  function renderPlans() {
+    const level = planLevel();
+    if (!plansCache) {
+      return `
+        <div class="detail-head">
+          <button type="button" class="icon-btn" data-act="close-plans" aria-label="Back to workouts">${chevron("left")}</button>
+          <h2>Home plans</h2>
+        </div>
+        <p class="hint">Loading plans…</p>`;
+    }
+    const session = ui.planSession ? sessionById(ui.planSession) : null;
+    if (session) {
+      return `
+        <div class="detail-head">
+          <button type="button" class="icon-btn" data-act="plans-back" aria-label="Back to plans">${chevron("left")}</button>
+          <h2>${esc(session.name)}</h2>
+        </div>
+        <p class="sub">${esc(session.plan)} · ${esc(session.equipment || "")}</p>
+        <p>${esc(session.blurb || "")}</p>
+        <p class="level-line" data-testid="level-summary">Level ${level.id} · ${esc(level.label)} · rest ${esc(level.rest)} · tempo ${esc(level.tempo)}</p>
+        <div class="plan-blocks">
+          ${(session.exercises || []).map((ex) => renderPlanExercise(ex, level)).join("")}
+        </div>
+        <button type="button" class="btn wo" data-act="start-plan" data-session="${esc(session.id)}">Start this workout</button>`;
+    }
+    const streak = easyStreak();
+    const showUp = streak >= 3 && streak > (store.data.settings.levelSnoozeAt || 0) && level.id < 5;
+    const showDown = hardStreak() >= 2 && level.id > 1;
+    const byId = {};
+    (plansCache.sessions || []).forEach((item) => {
+      byId[item.id] = item;
+    });
+    return `
+      <div class="detail-head">
+        <button type="button" class="icon-btn" data-act="close-plans" aria-label="Back to workouts">${chevron("left")}</button>
+        <h2>Home plans</h2>
+      </div>
+      <div class="disclaimer" data-testid="plan-disclaimer">${esc(plansCache.disclaimer || "")}</div>
+      <div class="section-head"><h3>Difficulty</h3></div>
+      <div class="seg" role="group" aria-label="Difficulty" data-testid="plan-levels">
+        ${PLAN_LEVELS.map(
+          (item) =>
+            `<button type="button" data-act="plan-level" data-level="${item.id}" aria-label="${esc(item.name)}" aria-pressed="${item.id === level.id}">${item.id}</button>`
+        ).join("")}
+      </div>
+      <p class="level-line" data-testid="level-summary">${esc(level.name)} · ${esc(level.label)} · ${level.sets} sets · ${esc(level.repLabel)} reps · rest ${esc(level.rest)} · tempo ${esc(level.tempo)} · bike ${level.bikeSteady} min</p>
+      ${
+        showUp
+          ? `<div class="level-prompt" data-testid="level-up">
+              <p>Your last few sessions felt comfortable. You can move to Level ${level.id + 1} when you want. No rush.</p>
+              <div class="sheet-actions">
+                <button type="button" class="btn secondary" data-act="level-stay">Stay at Level ${level.id}</button>
+                <button type="button" class="btn primary" data-act="level-up">Move to Level ${level.id + 1}</button>
+              </div>
+            </div>`
+          : ""
+      }
+      ${
+        showDown
+          ? `<div class="level-prompt" data-testid="level-down">
+              <p>The last sessions felt too hard. You can drop a level and keep the same exercises easier.</p>
+              <button type="button" class="btn secondary" data-act="level-down">Drop to Level ${level.id - 1}</button>
+            </div>`
+          : ""
+      }
+      <div class="section-head"><h3>This week</h3></div>
+      <p class="hint">${esc(plansCache.weekNote || "")}</p>
+      <div class="wo-list" data-testid="week-plan">
+        ${(plansCache.week || [])
+          .map((day) => {
+            const item = day.session ? byId[day.session] : null;
+            return `<div class="wo-row static">
+              <div>
+                <div class="title">${esc(day.day)}</div>
+                <div class="meta">${item ? esc(item.name) + " · " + esc(item.plan) : "Rest"}</div>
+              </div>
+              ${
+                item
+                  ? `<button type="button" class="btn secondary slim" data-act="start-plan" data-session="${esc(item.id)}">Start ${esc(item.name)}</button>`
+                  : ""
+              }
+            </div>`;
+          })
+          .join("")}
+      </div>
+      <div class="section-head"><h3>All sessions</h3></div>
+      <div class="wo-list">
+        ${(plansCache.sessions || [])
+          .map(
+            (item) => `<button type="button" class="wo-row" data-act="open-session" data-session="${esc(item.id)}" aria-label="Open ${esc(item.name)}">
+              <div>
+                <div class="title">${esc(item.name)}</div>
+                <div class="meta">${esc(item.plan)} · ${esc(item.equipment || "")}</div>
+              </div>
+              <span class="chev">›</span>
+            </button>`
+          )
+          .join("")}
+      </div>`;
+  }
+
+  function weightChart(shown, all, goal, range) {
+    if (!shown.length) return `<div class="empty" data-testid="weight-chart"><strong>No weigh-ins in this range</strong>Log a weight and it will show up here.</div>`;
+    const today = dateKey();
+    let x0 = shown[0].date;
+    let x1 = shown[shown.length - 1].date;
+    if (range !== "all") {
+      const days = range === "90" ? 90 : range === "365" ? 365 : 30;
+      x0 = addDays(today, -(days - 1));
+      x1 = today;
+    }
+    const ma = shown.map((entry) => ({ date: entry.date, lb: movingAverage(all, entry.date) }));
+    const ys = shown.map((entry) => entry.lb).concat(ma.map((entry) => entry.lb));
+    if (goal) ys.push(goal);
+    let min = Math.min.apply(null, ys);
+    let max = Math.max.apply(null, ys);
+    if (min === max) {
+      min -= 1;
+      max += 1;
+    }
+    const pad = (max - min) * 0.15;
+    min -= pad;
+    max += pad;
+    const left = 36;
+    const top = 12;
+    const width = 280;
+    const height = 120;
+    const span = Math.max(daysBetween(x0, x1), 0);
+    const xPos = (date) => (span <= 0 ? left + width / 2 : left + (daysBetween(x0, date) / span) * width);
+    const yPos = (lb) => top + (1 - (lb - min) / (max - min)) * height;
+    const line = (points) => points.map((point) => xPos(point.date).toFixed(1) + "," + yPos(point.lb).toFixed(1)).join(" ");
+    const goalY = goal ? yPos(goal) : null;
+    return `
+      <svg class="weight-chart" data-testid="weight-chart" viewBox="0 0 320 150" role="img" aria-label="Weight over time">
+        <line x1="${left}" y1="${top + height}" x2="${left + width}" y2="${top + height}" class="axis"></line>
+        ${
+          goalY != null
+            ? `<line data-testid="weight-goal-line" x1="${left}" y1="${goalY.toFixed(1)}" x2="${left + width}" y2="${goalY.toFixed(1)}" class="goal"></line>`
+            : ""
+        }
+        <polyline data-testid="weight-ma" points="${line(ma)}" class="ma"></polyline>
+        <polyline data-testid="weight-line" points="${line(shown)}" class="actual"></polyline>
+        ${shown
+          .map(
+            (entry) =>
+              `<circle cx="${xPos(entry.date).toFixed(1)}" cy="${yPos(entry.lb).toFixed(1)}" r="2.5" class="dot"><title>${esc(entry.date)} ${esc(fmtLb(entry.lb))} lb</title></circle>`
+          )
+          .join("")}
+      </svg>`;
+  }
+
+  function movingAverage(all, date) {
+    const start = addDays(date, -6);
+    const windowEntries = all.filter((entry) => entry.date >= start && entry.date <= date);
+    if (!windowEntries.length) return null;
+    const avg = windowEntries.reduce((sum, entry) => sum + entry.lb, 0) / windowEntries.length;
+    return round1(avg);
+  }
+
+  function renderWeight() {
+    const range = ui.weightRange || "30";
+    const all = store.weightEntries();
+    const today = dateKey();
+    let shown = all;
+    if (range !== "all") {
+      const days = range === "90" ? 90 : range === "365" ? 365 : 30;
+      const start = addDays(today, -(days - 1));
+      shown = all.filter((entry) => entry.date >= start && entry.date <= today);
+    }
+    const latest = all.length ? all[all.length - 1] : null;
+    const change = shown.length >= 2 ? round1(shown[shown.length - 1].lb - shown[0].lb) : null;
+    const goal = store.data.settings.weightGoal;
+    const changeText = change == null ? "—" : (change > 0 ? "+" : "") + change.toFixed(1) + " lb";
+    const ranges = [
+      ["30", "30 days"],
+      ["90", "90 days"],
+      ["365", "1 year"],
+      ["all", "All"],
+    ];
+    return `
+      <h2 class="page-title">Weight</h2>
+      <div class="stats">
+        <div class="stat"><div class="k">Current</div><div class="v" data-testid="weight-current">${latest ? esc(fmtLb(latest.lb)) + " lb" : "—"}</div></div>
+        <div class="stat"><div class="k">Change in view</div><div class="v" data-testid="weight-change">${esc(changeText)}</div></div>
+      </div>
+      <div class="seg" role="group" aria-label="Weight range">
+        ${ranges
+          .map(
+            ([id, label]) =>
+              `<button type="button" data-act="weight-range" data-range="${id}" aria-pressed="${range === id}">${label}</button>`
+          )
+          .join("")}
+      </div>
+      <section class="chart-card">
+        <h3>Weight</h3>
+        <div class="chart-avg">${goal ? "Goal " + esc(fmtLb(goal)) + " lb · " : ""}Line is each weigh-in. Blue is the 7-day average.</div>
+        ${weightChart(shown, all, goal, range)}
+      </section>
+      <div class="section-head"><h3>Entries</h3></div>
+      ${
+        shown.length
+          ? `<div class="food-list" data-testid="weight-list">${shown
+              .slice()
+              .reverse()
+              .map(
+                (entry) => `<div class="food-row">
+                  <div>
+                    <div class="name">${esc(fmtLb(entry.lb))} lb</div>
+                    <div class="meta">${esc(formatDate(entry.date))}${entry.note ? " · " + esc(entry.note) : ""}</div>
+                  </div>
+                  <div class="food-actions">
+                    <button type="button" class="icon-btn" data-act="edit-weight" data-date="${esc(entry.date)}" aria-label="Edit weight ${esc(entry.date)}">✎</button>
+                    <button type="button" class="icon-btn" data-act="delete-weight" data-date="${esc(entry.date)}" aria-label="Delete weight ${esc(entry.date)}">✕</button>
+                  </div>
+                </div>`
+              )
+              .join("")}</div>`
+          : `<div class="empty" data-testid="weight-empty"><strong>No weigh-ins yet</strong>One entry per day. Logging the same day again replaces it.</div>`
+      }
+      <div style="height:12px"></div>
+      <button type="button" class="btn primary" data-act="log-weight">Log weight</button>`;
+  }
+
   function setTabSelected() {
     document.querySelectorAll(".tab").forEach((tab) => {
       tab.setAttribute("aria-selected", tab.getAttribute("data-tab") === ui.tab ? "true" : "false");
@@ -794,7 +1702,9 @@
           ? renderWorkouts()
           : ui.tab === "history"
             ? renderHistory()
-            : renderSettings();
+            : ui.tab === "weight"
+              ? renderWeight()
+              : renderSettings();
     els.main.innerHTML = view;
     els.main.scrollTop = 0;
   }
@@ -802,12 +1712,52 @@
   function openFoodSheet(existing) {
     const isEdit = Boolean(existing);
     ui.sheet = { type: "food", id: existing && existing.id };
+    ui.foodBase = null;
     openSheet(`
       <h3>${isEdit ? "Edit food" : "Add food"}</h3>
+      ${
+        isEdit
+          ? ""
+          : `<div class="field">
+              <label for="food-search">Search foods</label>
+              <input id="food-search" placeholder="Chicken, banana, brand name…" autocomplete="off" enterkeyhint="search" />
+              <p class="hint">Common foods are from USDA FoodData Central and show immediately. Brand names search Open Food Facts when you are online.</p>
+            </div>
+            <div id="usda-results" data-testid="usda-results"></div>
+            <p id="brand-status" class="hint" data-testid="brand-status"></p>
+            <div id="brand-results" data-testid="brand-results"></div>
+            <div class="barcode-row">
+              <div class="field grow">
+                <label for="food-barcode">Barcode</label>
+                <input id="food-barcode" inputmode="numeric" autocomplete="off" placeholder="Type or scan" />
+              </div>
+              <button type="button" class="btn secondary slim" data-act="lookup-barcode">Look up</button>
+              <button type="button" class="btn secondary slim" data-act="scan-barcode">Scan barcode</button>
+            </div>
+            <p id="barcode-status" class="hint" data-testid="barcode-status"></p>
+            <div id="scan-panel" class="scan-panel" hidden>
+              <video id="scan-video" playsinline muted autoplay></video>
+              <p id="scan-status" class="hint" data-testid="scan-status"></p>
+              <button type="button" class="btn secondary" data-act="stop-scan">Close camera</button>
+            </div>`
+      }
       <form id="food-form" class="stack">
+        <div id="serving-adjust" class="serving-adjust" data-testid="serving-adjust" hidden>
+          <p id="serving-label" class="hint"></p>
+          <div class="field-row">
+            <div class="field">
+              <label for="food-servings">Servings</label>
+              <input id="food-servings" type="number" inputmode="decimal" min="0" step="any" value="1" disabled />
+            </div>
+            <div class="field" id="grams-wrap">
+              <label for="food-grams">Grams</label>
+              <input id="food-grams" type="number" inputmode="decimal" min="0" step="any" disabled />
+            </div>
+          </div>
+        </div>
         <div class="field">
           <label for="food-name">Food</label>
-          <input id="food-name" name="name" required maxlength="80" placeholder="Greek yogurt" value="${esc(existing ? existing.name : "")}" />
+          <input id="food-name" name="name" required maxlength="140" placeholder="Greek yogurt" value="${esc(existing ? existing.name : "")}" />
         </div>
         <div class="field-row">
           <div class="field">
@@ -819,14 +1769,38 @@
             <input id="food-pro" name="protein" type="number" inputmode="decimal" min="0" step="0.1" required value="${esc(existing ? existing.protein : "")}" />
           </div>
         </div>
-        ${
-          isEdit
-            ? ""
-            : `<label class="check"><input type="checkbox" id="food-fav" /> Save as favorite</label>`
-        }
+        ${isEdit ? "" : `<label class="check"><input type="checkbox" id="food-fav" /> Save as favorite</label>`}
         <div class="sheet-actions">
           <button type="button" class="btn secondary" data-act="close-sheet">Cancel</button>
           <button type="submit" class="btn primary">${isEdit ? "Save" : "Add"}</button>
+        </div>
+      </form>
+    `);
+  }
+
+  function openWeightSheet(date) {
+    const key = date || ui.date || dateKey();
+    const entry = store.data.weights[key];
+    ui.sheet = { type: "weight", date: key };
+    openSheet(`
+      <h3>${entry ? "Edit weight" : "Log weight"}</h3>
+      <form id="weight-form" class="stack">
+        <div class="field">
+          <label for="weight-date">Date</label>
+          <input id="weight-date" type="date" required max="${esc(dateKey())}" value="${esc(key)}" />
+        </div>
+        <div class="field">
+          <label for="weight-lb">Weight (lb)</label>
+          <input id="weight-lb" type="number" inputmode="decimal" min="1" max="800" step="0.1" required value="${entry ? esc(fmtLb(entry.lb)) : ""}" />
+        </div>
+        <div class="field">
+          <label for="weight-note">Note</label>
+          <input id="weight-note" maxlength="140" placeholder="Morning, after coffee…" value="${esc(entry ? entry.note || "" : "")}" />
+        </div>
+        <p class="hint">One entry per day. Saving this date again replaces it.</p>
+        <div class="sheet-actions">
+          <button type="button" class="btn secondary" data-act="close-sheet">Cancel</button>
+          <button type="submit" class="btn primary">Save weight</button>
         </div>
       </form>
     `);
@@ -871,8 +1845,9 @@
   function saveGoalsFromInputs() {
     const cal = document.getElementById("goal-cal");
     const pro = document.getElementById("goal-pro");
+    const weight = document.getElementById("goal-weight");
     if (!cal || !pro) return;
-    store.setGoals(cal.value, pro.value);
+    store.setGoals(cal.value, pro.value, weight ? weight.value : store.data.settings.weightGoal);
   }
 
   async function exportBackup() {
@@ -928,7 +1903,13 @@
     const act = btn.getAttribute("data-act");
 
     if (act === "tab") {
-      ui.tab = btn.getAttribute("data-tab");
+      const next = btn.getAttribute("data-tab");
+      if (next === "workouts" && ui.tab === "workouts") {
+        ui.workoutsMode = "list";
+        ui.planSession = null;
+        ui.workoutId = null;
+      }
+      ui.tab = next;
       if (ui.tab !== "workouts") ui.workoutId = null;
       closeSheet();
       render();
@@ -985,6 +1966,125 @@
     }
     if (act === "close-sheet") {
       closeSheet();
+      return;
+    }
+    if (act === "pick-food") {
+      applyFoodBase({
+        name: btn.getAttribute("data-name"),
+        calories: Number(btn.getAttribute("data-cal")),
+        protein: Number(btn.getAttribute("data-pro")),
+        grams: Number(btn.getAttribute("data-grams")) || 0,
+        serving: btn.getAttribute("data-serving") || "",
+      });
+      return;
+    }
+    if (act === "lookup-barcode") {
+      const input = document.getElementById("food-barcode");
+      lookupBarcode(input ? input.value : "");
+      return;
+    }
+    if (act === "scan-barcode") {
+      startScan();
+      return;
+    }
+    if (act === "stop-scan") {
+      stopScan();
+      const panel = document.getElementById("scan-panel");
+      if (panel) panel.hidden = true;
+      return;
+    }
+    if (act === "log-weight") {
+      openWeightSheet(ui.tab === "today" ? ui.date : dateKey());
+      return;
+    }
+    if (act === "edit-weight") {
+      openWeightSheet(btn.getAttribute("data-date"));
+      return;
+    }
+    if (act === "delete-weight") {
+      const date = btn.getAttribute("data-date");
+      if (date && confirm("Delete the weigh-in on " + formatDate(date) + "?")) {
+        store.deleteWeight(date);
+        render();
+      }
+      return;
+    }
+    if (act === "weight-range") {
+      ui.weightRange = btn.getAttribute("data-range") || "30";
+      render();
+      return;
+    }
+    if (act === "open-plans") {
+      ui.workoutId = null;
+      ui.planSession = null;
+      ui.workoutsMode = "plans";
+      render();
+      if (!plansCache) {
+        ensurePlans()
+          .then(() => {
+            if (ui.workoutsMode === "plans") render();
+          })
+          .catch(() => toast("Could not load plans"));
+      }
+      return;
+    }
+    if (act === "close-plans") {
+      ui.workoutsMode = "list";
+      ui.planSession = null;
+      render();
+      return;
+    }
+    if (act === "plans-back") {
+      ui.planSession = null;
+      render();
+      return;
+    }
+    if (act === "open-session") {
+      ui.planSession = btn.getAttribute("data-session");
+      render();
+      return;
+    }
+    if (act === "plan-level") {
+      store.setPlanLevel(btn.getAttribute("data-level"));
+      render();
+      return;
+    }
+    if (act === "level-up") {
+      const streak = easyStreak();
+      store.setPlanLevel(planLevel().id + 1);
+      store.setLevelSnooze(streak);
+      render();
+      return;
+    }
+    if (act === "level-stay") {
+      store.setLevelSnooze(easyStreak());
+      render();
+      return;
+    }
+    if (act === "level-down") {
+      store.setPlanLevel(planLevel().id - 1);
+      render();
+      return;
+    }
+    if (act === "start-plan") {
+      const session = sessionById(btn.getAttribute("data-session"));
+      if (!session) {
+        toast("That plan is still loading");
+        return;
+      }
+      const level = planLevel();
+      const workout = store.createPlannedWorkout(dateKey(), buildPlanWorkout(session, level));
+      ui.workoutId = workout.id;
+      ui.workoutsMode = "list";
+      ui.planSession = null;
+      ui.tab = "workouts";
+      render();
+      toast("Workout ready to log");
+      return;
+    }
+    if (act === "rpe") {
+      store.setRpe(ui.workoutId, btn.getAttribute("data-rpe"));
+      render();
       return;
     }
     if (act === "start-workout") {
@@ -1059,7 +2159,7 @@
     const el = event.target;
     const act = el.getAttribute && el.getAttribute("data-act");
     if (!act) return;
-    if (act === "goal-cal" || act === "goal-pro") {
+    if (act === "goal-cal" || act === "goal-pro" || act === "goal-weight") {
       saveGoalsFromInputs();
       return;
     }
@@ -1123,6 +2223,52 @@
       ui.workoutId = w.id;
       closeSheet();
       render();
+      return;
+    }
+    if (form.id === "weight-form") {
+      event.preventDefault();
+      const date = document.getElementById("weight-date").value;
+      const lb = document.getElementById("weight-lb").value;
+      const note = document.getElementById("weight-note").value;
+      if (date > dateKey()) {
+        toast("Pick today or an earlier date");
+        return;
+      }
+      store.logWeight(date, lb, note);
+      closeSheet();
+      if (ui.tab === "today") ui.date = date;
+      render();
+      toast("Weight saved");
+    }
+  }
+
+  function onInput(event) {
+    const el = event.target;
+    if (!el || !el.id) return;
+    if (el.id === "food-search") {
+      scheduleFoodSearch(el.value);
+      return;
+    }
+    if (el.id === "food-servings") {
+      scaleFromServings(Number(el.value));
+      return;
+    }
+    if (el.id === "food-grams") {
+      scaleFromGrams(Number(el.value));
+      return;
+    }
+    if (el.id === "weight-date") {
+      const entry = store.data.weights[el.value];
+      const lb = document.getElementById("weight-lb");
+      const note = document.getElementById("weight-note");
+      if (!lb || !note) return;
+      if (entry) {
+        lb.value = fmtLb(entry.lb);
+        note.value = entry.note || "";
+      } else {
+        lb.value = "";
+        note.value = "";
+      }
     }
   }
 
@@ -1144,6 +2290,7 @@
     }
     document.addEventListener("click", onClick);
     document.addEventListener("change", onChange);
+    document.addEventListener("input", onInput);
     document.addEventListener("submit", onSubmit);
     els.overlay.addEventListener("click", closeSheet);
     els.importFile.addEventListener("change", () => {
@@ -1151,6 +2298,7 @@
       if (file) importBackupFile(file);
     });
     render();
+    ensurePlans().catch(() => {});
     if ("serviceWorker" in navigator) {
       // Relative script and scope follow the page, so /Fittrack/ on GitHub Pages
       // registers https://…/Fittrack/sw.js with scope https://…/Fittrack/.
