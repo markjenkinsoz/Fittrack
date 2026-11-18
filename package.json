@@ -1,0 +1,14 @@
+{
+  "name": "fittrack",
+  "private": true,
+  "description": "Personal calorie, protein, and workout tracker PWA",
+  "scripts": {
+    "start": "python3 -m http.server 4173 --bind 127.0.0.1",
+    "start:pages": "python3 tools/serve_pages.py",
+    "test": "npx playwright test",
+    "icons": "python3 tools/generate_icons.py"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.65.1"
+  }
+}
