@@ -1,218 +1,704 @@
 {
-  "attribution": "Exercise diagrams are original generated illustrations of one 52-year-old man, made for FitTrack. They are not stock photos. Each image shows a start and a finish. Demo links open YouTube videos checked with YouTube oEmbed on 2026-11-18. Some links are full routines that include the movement.",
+  "attribution": "Exercise illustrations are original generated images of one 52-year-old man, made for FitTrack. They are not stock photos. Each exercise is a short sequence of steps. Demo links open YouTube videos checked with YouTube oEmbed on 2026-11-18. Some links are full routines that include the movement.",
   "demos": {
     "squat": {
       "title": "Goblet squat",
-      "image": "images/exercises/squat.jpg",
+      "image": "images/exercises/squat-1.jpg",
       "video": "https://www.youtube.com/watch?v=sOUCmU27mjE",
       "videoTitle": "Whole Body Workout for Beginners",
       "videoBy": "OPEX Bristol",
-      "webp": "images/exercises/squat.webp"
+      "webp": "images/exercises/squat-1.webp",
+      "frames": [
+        {
+          "image": "images/exercises/squat-1.jpg",
+          "webp": "images/exercises/squat-1.webp",
+          "cue": "Stand tall. Hold the dumbbell at your chest."
+        },
+        {
+          "image": "images/exercises/squat-2.jpg",
+          "webp": "images/exercises/squat-2.webp",
+          "cue": "Sit halfway. Hips back, heels down."
+        },
+        {
+          "image": "images/exercises/squat-3.jpg",
+          "webp": "images/exercises/squat-3.webp",
+          "cue": "Sit between the hips. Knees over mid-foot."
+        }
+      ]
     },
     "air-squat": {
       "title": "Squat to a bench",
-      "image": "images/exercises/air-squat.jpg",
+      "image": "images/exercises/air-squat-1.jpg",
       "video": "https://www.youtube.com/watch?v=sOUCmU27mjE",
       "videoTitle": "Whole Body Workout for Beginners",
       "videoBy": "OPEX Bristol",
-      "webp": "images/exercises/air-squat.webp"
+      "webp": "images/exercises/air-squat-1.webp",
+      "frames": [
+        {
+          "image": "images/exercises/air-squat-1.jpg",
+          "webp": "images/exercises/air-squat-1.webp",
+          "cue": "Stand tall in front of the bench."
+        },
+        {
+          "image": "images/exercises/air-squat-2.jpg",
+          "webp": "images/exercises/air-squat-2.webp",
+          "cue": "Sit halfway. Reach the arms for balance."
+        },
+        {
+          "image": "images/exercises/air-squat-3.jpg",
+          "webp": "images/exercises/air-squat-3.webp",
+          "cue": "Hips back toward the bench. Heels stay down."
+        }
+      ]
     },
     "bench": {
       "title": "Dumbbell bench press",
-      "image": "images/exercises/bench.jpg",
-      "webp": "images/exercises/bench.webp"
+      "image": "images/exercises/bench-1.jpg",
+      "webp": "images/exercises/bench-1.webp",
+      "frames": [
+        {
+          "image": "images/exercises/bench-1.jpg",
+          "webp": "images/exercises/bench-1.webp",
+          "cue": "Lie back, feet down, bells over the chest."
+        },
+        {
+          "image": "images/exercises/bench-2.jpg",
+          "webp": "images/exercises/bench-2.webp",
+          "cue": "Lower until the arms near the bench, then press."
+        }
+      ]
     },
     "floor-press": {
       "title": "Dumbbell floor press",
-      "image": "images/exercises/floor-press.jpg",
-      "webp": "images/exercises/floor-press.webp"
+      "image": "images/exercises/floor-press-1.jpg",
+      "webp": "images/exercises/floor-press-1.webp",
+      "frames": [
+        {
+          "image": "images/exercises/floor-press-1.jpg",
+          "webp": "images/exercises/floor-press-1.webp",
+          "cue": "Lie on the floor, bells at the chest."
+        },
+        {
+          "image": "images/exercises/floor-press-2.jpg",
+          "webp": "images/exercises/floor-press-2.webp",
+          "cue": "Press up. Elbows stop on the mat."
+        }
+      ]
     },
     "row": {
       "title": "One-arm dumbbell row",
-      "image": "images/exercises/row.jpg",
+      "image": "images/exercises/row-1.jpg",
       "video": "https://www.youtube.com/watch?v=sOUCmU27mjE",
       "videoTitle": "Whole Body Workout for Beginners",
       "videoBy": "OPEX Bristol",
-      "webp": "images/exercises/row.webp"
+      "webp": "images/exercises/row-1.webp",
+      "frames": [
+        {
+          "image": "images/exercises/row-1.jpg",
+          "webp": "images/exercises/row-1.webp",
+          "cue": "Support yourself. Let the bell hang."
+        },
+        {
+          "image": "images/exercises/row-2.jpg",
+          "webp": "images/exercises/row-2.webp",
+          "cue": "Pull the elbow to the hip, not the ceiling."
+        }
+      ]
     },
     "hinge": {
       "title": "Dumbbell Romanian deadlift",
-      "image": "images/exercises/hinge.jpg",
+      "image": "images/exercises/hinge-1.jpg",
       "video": "https://www.youtube.com/watch?v=ZEnWV4kguKc",
       "videoTitle": "How to do romanian deadlifts safely",
       "videoBy": "Jack Hanrahan Fitness",
-      "webp": "images/exercises/hinge.webp"
+      "webp": "images/exercises/hinge-1.webp",
+      "frames": [
+        {
+          "image": "images/exercises/hinge-1.jpg",
+          "webp": "images/exercises/hinge-1.webp",
+          "cue": "Stand tall. Weights hang at the thighs."
+        },
+        {
+          "image": "images/exercises/hinge-2.jpg",
+          "webp": "images/exercises/hinge-2.webp",
+          "cue": "Push the hips back. Knees stay soft."
+        },
+        {
+          "image": "images/exercises/hinge-3.jpg",
+          "webp": "images/exercises/hinge-3.webp",
+          "cue": "Stop when the hamstrings tighten."
+        },
+        {
+          "image": "images/exercises/hinge-1.jpg",
+          "webp": "images/exercises/hinge-1.webp",
+          "cue": "Stand tall again. Squeeze the glutes."
+        }
+      ]
     },
     "kb-deadlift": {
       "title": "Kettlebell deadlift",
-      "image": "images/exercises/kb-deadlift.jpg",
+      "image": "images/exercises/kb-deadlift-1.jpg",
       "video": "https://www.youtube.com/watch?v=ZEnWV4kguKc",
       "videoTitle": "How to do romanian deadlifts safely",
       "videoBy": "Jack Hanrahan Fitness",
-      "webp": "images/exercises/kb-deadlift.webp"
+      "webp": "images/exercises/kb-deadlift-1.webp",
+      "frames": [
+        {
+          "image": "images/exercises/kb-deadlift-1.jpg",
+          "webp": "images/exercises/kb-deadlift-1.webp",
+          "cue": "Hinge and hold the bell by the floor."
+        },
+        {
+          "image": "images/exercises/kb-deadlift-2.jpg",
+          "webp": "images/exercises/kb-deadlift-2.webp",
+          "cue": "Pull the bell to the knees. Back stays flat."
+        },
+        {
+          "image": "images/exercises/kb-deadlift-3.jpg",
+          "webp": "images/exercises/kb-deadlift-3.webp",
+          "cue": "Stand tall and lock the hips."
+        }
+      ]
     },
     "press": {
       "title": "Seated dumbbell press",
-      "image": "images/exercises/press.jpg",
-      "webp": "images/exercises/press.webp"
+      "image": "images/exercises/press-1.jpg",
+      "webp": "images/exercises/press-1.webp",
+      "frames": [
+        {
+          "image": "images/exercises/press-1.jpg",
+          "webp": "images/exercises/press-1.webp",
+          "cue": "Sit tall. Bells at the shoulders."
+        },
+        {
+          "image": "images/exercises/press-2.jpg",
+          "webp": "images/exercises/press-2.webp",
+          "cue": "Press without shrugging, then lower."
+        }
+      ]
     },
     "half-kneel-press": {
       "title": "Half-kneeling one-arm press",
-      "image": "images/exercises/half-kneel-press.jpg",
-      "webp": "images/exercises/half-kneel-press.webp"
+      "image": "images/exercises/half-kneel-press-1.jpg",
+      "webp": "images/exercises/half-kneel-press-1.webp",
+      "frames": [
+        {
+          "image": "images/exercises/half-kneel-press-1.jpg",
+          "webp": "images/exercises/half-kneel-press-1.webp",
+          "cue": "Half kneel. Bell at the shoulder."
+        },
+        {
+          "image": "images/exercises/half-kneel-press-2.jpg",
+          "webp": "images/exercises/half-kneel-press-2.webp",
+          "cue": "Press up. Tall torso, ribs stay down."
+        }
+      ]
     },
     "dead-bug": {
       "title": "Dead bug",
-      "image": "images/exercises/dead-bug.jpg",
+      "image": "images/exercises/dead-bug-1.jpg",
       "video": "https://www.youtube.com/watch?v=99ewh8IACrA",
       "videoTitle": "Ultimate Ab & Core Workout: Bird Dog, Dead Bug, & Bridge",
       "videoBy": "Andrew's Fitness Training",
-      "webp": "images/exercises/dead-bug.webp"
+      "webp": "images/exercises/dead-bug-1.webp",
+      "frames": [
+        {
+          "image": "images/exercises/dead-bug-1.jpg",
+          "webp": "images/exercises/dead-bug-1.webp",
+          "cue": "Arms up. Knees bent over the hips."
+        },
+        {
+          "image": "images/exercises/dead-bug-2.jpg",
+          "webp": "images/exercises/dead-bug-2.webp",
+          "cue": "Reach one leg long. Keep both arms up."
+        },
+        {
+          "image": "images/exercises/dead-bug-3.jpg",
+          "webp": "images/exercises/dead-bug-3.webp",
+          "cue": "Lower the opposite arm and leg. Back stays down."
+        },
+        {
+          "image": "images/exercises/dead-bug-1.jpg",
+          "webp": "images/exercises/dead-bug-1.webp",
+          "cue": "Bring the arm and knee back over the hips."
+        }
+      ]
     },
     "heel-slide": {
       "title": "Heel slide",
-      "image": "images/exercises/heel-slide.jpg",
+      "image": "images/exercises/heel-slide-1.jpg",
       "video": "https://www.youtube.com/watch?v=99ewh8IACrA",
       "videoTitle": "Ultimate Ab & Core Workout: Bird Dog, Dead Bug, & Bridge",
       "videoBy": "Andrew's Fitness Training",
-      "webp": "images/exercises/heel-slide.webp"
+      "webp": "images/exercises/heel-slide-1.webp",
+      "frames": [
+        {
+          "image": "images/exercises/heel-slide-1.jpg",
+          "webp": "images/exercises/heel-slide-1.webp",
+          "cue": "Lie on your back, one heel ready to slide."
+        },
+        {
+          "image": "images/exercises/heel-slide-2.jpg",
+          "webp": "images/exercises/heel-slide-2.webp",
+          "cue": "Slide the heel out a short way, then back."
+        }
+      ]
     },
     "figure4": {
       "title": "Figure-4 stretch",
-      "image": "images/exercises/figure4.jpg",
-      "webp": "images/exercises/figure4.webp"
+      "image": "images/exercises/figure4-1.jpg",
+      "webp": "images/exercises/figure4-1.webp",
+      "frames": [
+        {
+          "image": "images/exercises/figure4-1.jpg",
+          "webp": "images/exercises/figure4-1.webp",
+          "cue": "Ankle rests across the other knee."
+        },
+        {
+          "image": "images/exercises/figure4-2.jpg",
+          "webp": "images/exercises/figure4-2.webp",
+          "cue": "Draw the thigh in. Do not press hard."
+        }
+      ]
     },
     "bike": {
       "title": "Recumbent bike",
-      "image": "images/exercises/bike.jpg",
-      "webp": "images/exercises/bike.webp"
+      "image": "images/exercises/bike-1.jpg",
+      "webp": "images/exercises/bike-1.webp",
+      "frames": [
+        {
+          "image": "images/exercises/bike-1.jpg",
+          "webp": "images/exercises/bike-1.webp",
+          "cue": "Easy spin on the recumbent bike. You should be able to talk."
+        },
+        {
+          "image": "images/exercises/bike-2.jpg",
+          "webp": "images/exercises/bike-2.webp",
+          "cue": "Pedal through the circle. Keep it easy."
+        }
+      ]
     },
     "open-book": {
       "title": "Open book rotation",
-      "image": "images/exercises/open-book.jpg",
-      "webp": "images/exercises/open-book.webp"
+      "image": "images/exercises/open-book-1.jpg",
+      "webp": "images/exercises/open-book-1.webp",
+      "frames": [
+        {
+          "image": "images/exercises/open-book-1.jpg",
+          "webp": "images/exercises/open-book-1.webp",
+          "cue": "Knees stacked. Arms reach forward."
+        },
+        {
+          "image": "images/exercises/open-book-2.jpg",
+          "webp": "images/exercises/open-book-2.webp",
+          "cue": "Open the top arm halfway. Knees stay together."
+        },
+        {
+          "image": "images/exercises/open-book-3.jpg",
+          "webp": "images/exercises/open-book-3.webp",
+          "cue": "Open only as far as the ribs allow."
+        }
+      ]
     },
     "split": {
       "title": "Split squat",
-      "image": "images/exercises/split.jpg",
+      "image": "images/exercises/split-1.jpg",
       "video": "https://www.youtube.com/watch?v=EAO2twIivhs",
       "videoTitle": "35 Min Strength Training at Home Full Body Workout with Dumbbells",
       "videoBy": "HASfit",
-      "webp": "images/exercises/split.webp"
+      "webp": "images/exercises/split-1.webp",
+      "frames": [
+        {
+          "image": "images/exercises/split-1.jpg",
+          "webp": "images/exercises/split-1.webp",
+          "cue": "Short stance. Stand tall."
+        },
+        {
+          "image": "images/exercises/split-2.jpg",
+          "webp": "images/exercises/split-2.webp",
+          "cue": "Lower halfway. Front heel stays down."
+        },
+        {
+          "image": "images/exercises/split-3.jpg",
+          "webp": "images/exercises/split-3.webp",
+          "cue": "Back knee toward the floor. Stay tall."
+        },
+        {
+          "image": "images/exercises/split-1.jpg",
+          "webp": "images/exercises/split-1.webp",
+          "cue": "Drive through the front foot to stand."
+        }
+      ]
     },
     "rfess": {
       "title": "Rear-foot elevated split squat",
-      "image": "images/exercises/rfess.jpg",
+      "image": "images/exercises/rfess-1.jpg",
       "video": "https://www.youtube.com/watch?v=EAO2twIivhs",
       "videoTitle": "35 Min Strength Training at Home Full Body Workout with Dumbbells",
       "videoBy": "HASfit",
-      "webp": "images/exercises/rfess.webp"
+      "webp": "images/exercises/rfess-1.webp",
+      "frames": [
+        {
+          "image": "images/exercises/rfess-1.jpg",
+          "webp": "images/exercises/rfess-1.webp",
+          "cue": "Back toes on the bench. Stand tall."
+        },
+        {
+          "image": "images/exercises/rfess-2.jpg",
+          "webp": "images/exercises/rfess-2.webp",
+          "cue": "Lower halfway. Front heel down."
+        },
+        {
+          "image": "images/exercises/rfess-3.jpg",
+          "webp": "images/exercises/rfess-3.webp",
+          "cue": "Back knee toward the floor. Torso stays tall."
+        }
+      ]
     },
     "pushup": {
       "title": "Incline push-up",
-      "image": "images/exercises/pushup.jpg",
-      "webp": "images/exercises/pushup.webp"
+      "image": "images/exercises/pushup-1.jpg",
+      "webp": "images/exercises/pushup-1.webp",
+      "frames": [
+        {
+          "image": "images/exercises/pushup-1.jpg",
+          "webp": "images/exercises/pushup-1.webp",
+          "cue": "Hands on the bench. Body in one line."
+        },
+        {
+          "image": "images/exercises/pushup-2.jpg",
+          "webp": "images/exercises/pushup-2.webp",
+          "cue": "Bend the arms, then press back up."
+        }
+      ]
     },
     "bridge": {
       "title": "Glute bridge",
-      "image": "images/exercises/bridge.jpg",
+      "image": "images/exercises/bridge-1.jpg",
       "video": "https://www.youtube.com/watch?v=99ewh8IACrA",
       "videoTitle": "Ultimate Ab & Core Workout: Bird Dog, Dead Bug, & Bridge",
       "videoBy": "Andrew's Fitness Training",
-      "webp": "images/exercises/bridge.webp"
+      "webp": "images/exercises/bridge-1.webp",
+      "frames": [
+        {
+          "image": "images/exercises/bridge-1.jpg",
+          "webp": "images/exercises/bridge-1.webp",
+          "cue": "Lie on your back, feet flat."
+        },
+        {
+          "image": "images/exercises/bridge-2.jpg",
+          "webp": "images/exercises/bridge-2.webp",
+          "cue": "Drive through the heels. Ribs stay down."
+        }
+      ]
     },
     "db-bridge": {
       "title": "Dumbbell glute bridge",
-      "image": "images/exercises/db-bridge.jpg",
+      "image": "images/exercises/db-bridge-1.jpg",
       "video": "https://www.youtube.com/watch?v=99ewh8IACrA",
       "videoTitle": "Ultimate Ab & Core Workout: Bird Dog, Dead Bug, & Bridge",
       "videoBy": "Andrew's Fitness Training",
-      "webp": "images/exercises/db-bridge.webp"
+      "webp": "images/exercises/db-bridge-1.webp",
+      "frames": [
+        {
+          "image": "images/exercises/db-bridge-1.jpg",
+          "webp": "images/exercises/db-bridge-1.webp",
+          "cue": "Dumbbell rests on the hips. Skip it if the abdomen strains."
+        },
+        {
+          "image": "images/exercises/db-bridge-2.jpg",
+          "webp": "images/exercises/db-bridge-2.webp",
+          "cue": "Lift the hips. Drive through the heels."
+        }
+      ]
     },
     "carry": {
       "title": "Farmer march",
-      "image": "images/exercises/carry.jpg",
+      "image": "images/exercises/carry-1.jpg",
       "video": "https://www.youtube.com/watch?v=y1r9toPQNkM",
       "videoTitle": "8 Best Dumbbell Exercises Ever",
       "videoBy": "ATHLEAN-X",
-      "webp": "images/exercises/carry.webp"
+      "webp": "images/exercises/carry-1.webp",
+      "frames": [
+        {
+          "image": "images/exercises/carry-1.jpg",
+          "webp": "images/exercises/carry-1.webp",
+          "cue": "Tall walk. One dumbbell in each hand."
+        },
+        {
+          "image": "images/exercises/carry-2.jpg",
+          "webp": "images/exercises/carry-2.webp",
+          "cue": "Feet pass. Shoulders stay down."
+        },
+        {
+          "image": "images/exercises/carry-3.jpg",
+          "webp": "images/exercises/carry-3.webp",
+          "cue": "Step through. Short steps, modest load."
+        }
+      ]
     },
     "suitcase": {
       "title": "Suitcase march",
-      "image": "images/exercises/suitcase.jpg",
+      "image": "images/exercises/suitcase-1.jpg",
       "video": "https://www.youtube.com/watch?v=y1r9toPQNkM",
       "videoTitle": "8 Best Dumbbell Exercises Ever",
       "videoBy": "ATHLEAN-X",
-      "webp": "images/exercises/suitcase.webp"
+      "webp": "images/exercises/suitcase-1.webp",
+      "frames": [
+        {
+          "image": "images/exercises/suitcase-1.jpg",
+          "webp": "images/exercises/suitcase-1.webp",
+          "cue": "One kettlebell. Stand tall, do not lean."
+        },
+        {
+          "image": "images/exercises/suitcase-2.jpg",
+          "webp": "images/exercises/suitcase-2.webp",
+          "cue": "Feet pass. The weight stays at your side."
+        },
+        {
+          "image": "images/exercises/suitcase-3.jpg",
+          "webp": "images/exercises/suitcase-3.webp",
+          "cue": "Step through. Ribs stay stacked."
+        }
+      ]
     },
     "bird-dog": {
       "title": "Bird dog",
-      "image": "images/exercises/bird-dog.jpg",
+      "image": "images/exercises/bird-dog-1.jpg",
       "video": "https://www.youtube.com/watch?v=99ewh8IACrA",
       "videoTitle": "Ultimate Ab & Core Workout: Bird Dog, Dead Bug, & Bridge",
       "videoBy": "Andrew's Fitness Training",
-      "webp": "images/exercises/bird-dog.webp"
+      "webp": "images/exercises/bird-dog-1.webp",
+      "frames": [
+        {
+          "image": "images/exercises/bird-dog-1.jpg",
+          "webp": "images/exercises/bird-dog-1.webp",
+          "cue": "Hands and knees. Back flat."
+        },
+        {
+          "image": "images/exercises/bird-dog-2.jpg",
+          "webp": "images/exercises/bird-dog-2.webp",
+          "cue": "Reach one arm. Both knees stay down."
+        },
+        {
+          "image": "images/exercises/bird-dog-3.jpg",
+          "webp": "images/exercises/bird-dog-3.webp",
+          "cue": "Reach the opposite leg. Hips stay level."
+        },
+        {
+          "image": "images/exercises/bird-dog-1.jpg",
+          "webp": "images/exercises/bird-dog-1.webp",
+          "cue": "Bring the arm and leg back in."
+        }
+      ]
     },
     "hip-flexor": {
       "title": "Hip flexor stretch",
-      "image": "images/exercises/hip-flexor.jpg",
-      "webp": "images/exercises/hip-flexor.webp"
+      "image": "images/exercises/hip-flexor-1.jpg",
+      "webp": "images/exercises/hip-flexor-1.webp",
+      "frames": [
+        {
+          "image": "images/exercises/hip-flexor-1.jpg",
+          "webp": "images/exercises/hip-flexor-1.webp",
+          "cue": "Half kneeling, tall."
+        },
+        {
+          "image": "images/exercises/hip-flexor-2.jpg",
+          "webp": "images/exercises/hip-flexor-2.webp",
+          "cue": "A small pelvic tuck. Skip it if it pulls."
+        }
+      ]
     },
     "ankle": {
       "title": "Ankle rocks",
-      "image": "images/exercises/ankle.jpg",
-      "webp": "images/exercises/ankle.webp"
+      "image": "images/exercises/ankle-1.jpg",
+      "webp": "images/exercises/ankle-1.webp",
+      "frames": [
+        {
+          "image": "images/exercises/ankle-1.jpg",
+          "webp": "images/exercises/ankle-1.webp",
+          "cue": "Hold the bench. Knee tracks over the toes."
+        },
+        {
+          "image": "images/exercises/ankle-2.jpg",
+          "webp": "images/exercises/ankle-2.webp",
+          "cue": "Rock the knee forward a little, then back."
+        }
+      ]
     },
     "curl": {
       "title": "Seated hammer curl",
-      "image": "images/exercises/curl.jpg",
-      "webp": "images/exercises/curl.webp"
+      "image": "images/exercises/curl-1.jpg",
+      "webp": "images/exercises/curl-1.webp",
+      "frames": [
+        {
+          "image": "images/exercises/curl-1.jpg",
+          "webp": "images/exercises/curl-1.webp",
+          "cue": "Seated hammer curl. Elbows near the ribs."
+        },
+        {
+          "image": "images/exercises/curl-2.jpg",
+          "webp": "images/exercises/curl-2.webp",
+          "cue": "Curl up, then lower. Elbows stay still."
+        }
+      ]
     },
     "clam": {
       "title": "Side-lying clam",
-      "image": "images/exercises/clam.jpg",
-      "webp": "images/exercises/clam.webp"
+      "image": "images/exercises/clam-1.jpg",
+      "webp": "images/exercises/clam-1.webp",
+      "frames": [
+        {
+          "image": "images/exercises/clam-1.jpg",
+          "webp": "images/exercises/clam-1.webp",
+          "cue": "Lie on your side. Hips stacked, heels together."
+        },
+        {
+          "image": "images/exercises/clam-2.jpg",
+          "webp": "images/exercises/clam-2.webp",
+          "cue": "Small lift of the top knee, then lower."
+        }
+      ]
     },
     "hamstring": {
       "title": "Hamstring stretch",
-      "image": "images/exercises/hamstring.jpg",
-      "webp": "images/exercises/hamstring.webp"
+      "image": "images/exercises/hamstring-1.jpg",
+      "webp": "images/exercises/hamstring-1.webp",
+      "frames": [
+        {
+          "image": "images/exercises/hamstring-1.jpg",
+          "webp": "images/exercises/hamstring-1.webp",
+          "cue": "Hold the thigh in toward you."
+        },
+        {
+          "image": "images/exercises/hamstring-2.jpg",
+          "webp": "images/exercises/hamstring-2.webp",
+          "cue": "Keep a small bend in the knee."
+        }
+      ]
     },
     "breathe": {
       "title": "Quiet breathing",
-      "image": "images/exercises/breathe.jpg",
-      "webp": "images/exercises/breathe.webp"
+      "image": "images/exercises/breathe-1.jpg",
+      "webp": "images/exercises/breathe-1.webp",
+      "frames": [
+        {
+          "image": "images/exercises/breathe-1.jpg",
+          "webp": "images/exercises/breathe-1.webp",
+          "cue": "One hand on the belly."
+        },
+        {
+          "image": "images/exercises/breathe-2.jpg",
+          "webp": "images/exercises/breathe-2.webp",
+          "cue": "Easy breaths. No brace."
+        }
+      ]
     },
     "halo": {
       "title": "Kettlebell halo",
-      "image": "images/exercises/halo.jpg",
+      "image": "images/exercises/halo-1.jpg",
       "video": "https://www.youtube.com/watch?v=Sci3lijQBmk",
       "videoTitle": "Kettlebell Halo Tutorial",
       "videoBy": "Brittany van Schravendijk",
-      "webp": "images/exercises/halo.webp"
+      "webp": "images/exercises/halo-1.webp",
+      "frames": [
+        {
+          "image": "images/exercises/halo-1.jpg",
+          "webp": "images/exercises/halo-1.webp",
+          "cue": "Bell in front of the face. Elbows in."
+        },
+        {
+          "image": "images/exercises/halo-2.jpg",
+          "webp": "images/exercises/halo-2.webp",
+          "cue": "Circle the bell down to the shoulder."
+        },
+        {
+          "image": "images/exercises/halo-3.jpg",
+          "webp": "images/exercises/halo-3.webp",
+          "cue": "Bell behind the head, then circle back to the front."
+        }
+      ]
     },
     "cat-cow": {
       "title": "Cat-cow",
-      "image": "images/exercises/cat-cow.jpg",
+      "image": "images/exercises/cat-cow-1.jpg",
       "video": "https://www.youtube.com/watch?v=Dq1XBAkIZEM",
       "videoTitle": "Adaptive Yoga for Kids",
       "videoBy": "National Center on Health, Physical Activity and Disability",
-      "webp": "images/exercises/cat-cow.webp"
+      "webp": "images/exercises/cat-cow-1.webp",
+      "frames": [
+        {
+          "image": "images/exercises/cat-cow-1.jpg",
+          "webp": "images/exercises/cat-cow-1.webp",
+          "cue": "Round the back and tuck the chin."
+        },
+        {
+          "image": "images/exercises/cat-cow-2.jpg",
+          "webp": "images/exercises/cat-cow-2.webp",
+          "cue": "Neutral spine. Head in line with the back."
+        },
+        {
+          "image": "images/exercises/cat-cow-3.jpg",
+          "webp": "images/exercises/cat-cow-3.webp",
+          "cue": "Soften the belly and lift the head a little."
+        }
+      ]
     },
     "knee-rock": {
       "title": "Supine knee rocks",
-      "image": "images/exercises/knee-rock.jpg",
-      "webp": "images/exercises/knee-rock.webp"
+      "image": "images/exercises/knee-rock-1.jpg",
+      "webp": "images/exercises/knee-rock-1.webp",
+      "frames": [
+        {
+          "image": "images/exercises/knee-rock-1.jpg",
+          "webp": "images/exercises/knee-rock-1.webp",
+          "cue": "Lie on your back. Knees bent and stacked."
+        },
+        {
+          "image": "images/exercises/knee-rock-2.jpg",
+          "webp": "images/exercises/knee-rock-2.webp",
+          "cue": "Let both knees fall to one side, then switch."
+        }
+      ]
     },
     "thoracic": {
       "title": "Thoracic reach",
-      "image": "images/exercises/thoracic.jpg",
-      "webp": "images/exercises/thoracic.webp"
+      "image": "images/exercises/thoracic-1.jpg",
+      "webp": "images/exercises/thoracic-1.webp",
+      "frames": [
+        {
+          "image": "images/exercises/thoracic-1.jpg",
+          "webp": "images/exercises/thoracic-1.webp",
+          "cue": "On all fours. Back stays quiet."
+        },
+        {
+          "image": "images/exercises/thoracic-2.jpg",
+          "webp": "images/exercises/thoracic-2.webp",
+          "cue": "Hand behind the head. Elbow points down."
+        },
+        {
+          "image": "images/exercises/thoracic-3.jpg",
+          "webp": "images/exercises/thoracic-3.webp",
+          "cue": "Rotate the elbow up only as far as the neck stays easy."
+        }
+      ]
     },
     "side-lie": {
       "title": "Side-lying wind-down",
-      "image": "images/exercises/side-lie.jpg",
-      "webp": "images/exercises/side-lie.webp"
+      "image": "images/exercises/side-lie-1.jpg",
+      "webp": "images/exercises/side-lie-1.webp",
+      "frames": [
+        {
+          "image": "images/exercises/side-lie-1.jpg",
+          "webp": "images/exercises/side-lie-1.webp",
+          "cue": "Lie on your side. Top knee bent on the mat."
+        },
+        {
+          "image": "images/exercises/side-lie-2.jpg",
+          "webp": "images/exercises/side-lie-2.webp",
+          "cue": "Breathe, then switch sides."
+        }
+      ]
     }
   },
   "names": {

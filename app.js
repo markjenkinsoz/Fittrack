@@ -712,23 +712,80 @@
     return demosLoading;
   }
 
+  function demoFrames(demo) {
+    if (demo.frames && demo.frames.length) return demo.frames;
+    const webp = demo.webp || String(demo.image).replace(/\.jpe?g$/, ".webp");
+    return [{ image: demo.image, webp, cue: "" }];
+  }
+
   function exerciseFigure(name) {
     if (!demosCache || !name) return "";
     const demoId = demosCache.names && demosCache.names[name];
     const demo = demoId && demosCache.demos[demoId];
     if (!demo) return "";
+    const frames = demoFrames(demo);
+    const total = frames.length;
+    const frame = frames[0];
+    const webp = frame.webp || String(frame.image).replace(/\.jpe?g$/, ".webp");
     const video = demo.video
       ? `<a class="demo-link" href="${esc(demo.video)}" target="_blank" rel="noopener noreferrer">Watch demo</a>`
       : `<span class="hint">Illustration only</span>`;
     const credit = demo.videoTitle ? `<span class="hint">${esc(demo.videoTitle)}</span>` : "";
-    const webp = demo.webp || String(demo.image).replace(/\.jpe?g$/, ".webp");
-    return `<figure class="demo" data-testid="exercise-demo">
-      <picture>
-        <source srcset="${esc(webp)}" type="image/webp" />
-        <img src="${esc(demo.image)}" alt="${esc(demo.title)} start and finish" width="1120" height="630" loading="lazy" decoding="async" />
-      </picture>
+    const dots = frames
+      .map(
+        (_, i) =>
+          `<button type="button" class="frame-dot${i === 0 ? " on" : ""}" data-act="frame-dot" data-index="${i}" aria-label="Step ${i + 1} of ${total}"${i === 0 ? ' aria-current="step"' : ""}></button>`
+      )
+      .join("");
+    return `<figure class="demo" data-testid="exercise-demo" data-demo-id="${esc(demoId)}" data-step="0">
+      <div class="demo-stage">
+        <button type="button" class="demo-shot" data-act="frame-next" aria-label="Next step">
+          <picture>
+            <source srcset="${esc(webp)}" type="image/webp" />
+            <img src="${esc(frame.image)}" alt="${esc(demo.title)}. Step 1 of ${total}. ${esc(frame.cue)}" width="720" height="720" loading="lazy" decoding="async" />
+          </picture>
+        </button>
+      </div>
+      <div class="frame-nav">
+        <button type="button" class="icon-btn" data-act="frame-prev" aria-label="Previous step">${chevron("left")}</button>
+        <div class="frame-meta">
+          <span class="frame-count">Step 1 of ${total}</span>
+          <span class="frame-dots">${dots}</span>
+        </div>
+        <button type="button" class="icon-btn" data-act="frame-next" aria-label="Next step">${chevron("right")}</button>
+      </div>
+      <p class="frame-cue">${esc(frame.cue)}</p>
       <figcaption>${video}${credit}</figcaption>
     </figure>`;
+  }
+
+  function paintDemoFrame(fig, step) {
+    if (!fig || !demosCache) return;
+    const demo = demosCache.demos[fig.getAttribute("data-demo-id")];
+    if (!demo) return;
+    const frames = demoFrames(demo);
+    const total = frames.length;
+    const index = ((step % total) + total) % total;
+    const frame = frames[index];
+    const webp = frame.webp || String(frame.image).replace(/\.jpe?g$/, ".webp");
+    fig.setAttribute("data-step", String(index));
+    const img = fig.querySelector("img");
+    const source = fig.querySelector("source");
+    if (img) {
+      img.src = frame.image;
+      img.alt = `${demo.title}. Step ${index + 1} of ${total}. ${frame.cue}`;
+    }
+    if (source) source.srcset = webp;
+    const count = fig.querySelector(".frame-count");
+    if (count) count.textContent = `Step ${index + 1} of ${total}`;
+    const cue = fig.querySelector(".frame-cue");
+    if (cue) cue.textContent = frame.cue || "";
+    fig.querySelectorAll(".frame-dot").forEach((dot, i) => {
+      const on = i === index;
+      dot.classList.toggle("on", on);
+      if (on) dot.setAttribute("aria-current", "step");
+      else dot.removeAttribute("aria-current");
+    });
   }
 
   let foodsCache = null;
@@ -2312,6 +2369,15 @@
     if (!btn) return;
     const act = btn.getAttribute("data-act");
 
+    if (act === "frame-next" || act === "frame-prev" || act === "frame-dot") {
+      const fig = btn.closest(".demo");
+      if (!fig) return;
+      const current = Number(fig.getAttribute("data-step")) || 0;
+      const next = act === "frame-dot" ? Number(btn.getAttribute("data-index")) || 0 : current + (act === "frame-next" ? 1 : -1);
+      paintDemoFrame(fig, next);
+      return;
+    }
+
     if (act === "tab") {
       const next = btn.getAttribute("data-tab");
       if (next === "workouts" && ui.tab === "workouts") {
@@ -2783,6 +2849,28 @@
       window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", syncThemeColor);
     }
     document.addEventListener("click", onClick);
+    let framePointer = null;
+    document.addEventListener("pointerdown", (event) => {
+      const stage = event.target.closest(".demo-stage");
+      if (!stage) return;
+      framePointer = { x: event.clientX, y: event.clientY, stage };
+    });
+    document.addEventListener("pointerup", (event) => {
+      if (!framePointer) return;
+      const start = framePointer;
+      framePointer = null;
+      const dx = event.clientX - start.x;
+      const dy = event.clientY - start.y;
+      if (Math.abs(dx) < 40 || Math.abs(dx) < Math.abs(dy)) return;
+      const fig = start.stage.closest(".demo");
+      const current = Number(fig && fig.getAttribute("data-step")) || 0;
+      paintDemoFrame(fig, current + (dx < 0 ? 1 : -1));
+      const stop = (ev) => {
+        ev.stopPropagation();
+        start.stage.removeEventListener("click", stop, true);
+      };
+      start.stage.addEventListener("click", stop, true);
+    });
     document.addEventListener("change", onChange);
     document.addEventListener("input", onInput);
     document.addEventListener("submit", onSubmit);
