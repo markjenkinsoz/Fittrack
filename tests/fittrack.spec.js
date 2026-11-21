@@ -407,8 +407,8 @@ test.describe("FitTrack PWA", () => {
     expect(swRes.status()).toBe(200);
     const swText = await swRes.text();
     expect(swText).toContain("./index.html");
-    expect(swText).toContain("fittrack-v4");
-    expect(swText).not.toContain("fittrack-v3");
+    expect(swText).toContain("fittrack-v5");
+    expect(swText).not.toContain("fittrack-v4");
     expect(swText).not.toContain('"/index.html"');
     expect(swText).not.toContain("'/index.html'");
 
@@ -870,7 +870,7 @@ test.describe("FitTrack PWA", () => {
     await page.getByRole("button", { name: "Level 1" }).click();
     await page.getByRole("button", { name: "Open Strength A" }).click();
     const squat = page.locator(".plan-ex", { hasText: "Squat to a bench" });
-    await expect(squat.locator("img")).toHaveAttribute("src", /images\/exercises\/squat\.svg/);
+    await expect(squat.locator("img")).toHaveAttribute("src", /images\/exercises\/air-squat\.svg/);
     await expect(squat.locator("img")).toHaveAttribute("loading", "lazy");
     await expect(squat.getByRole("link", { name: "Watch demo" })).toHaveAttribute("href", /youtube\.com\/watch\?v=sOUCmU27mjE/);
     const halo = page.locator("body");
