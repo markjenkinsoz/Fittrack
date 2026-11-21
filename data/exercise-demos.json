@@ -1,185 +1,218 @@
 {
-  "attribution": "Form diagrams were drawn for FitTrack. They are original filled illustrations, not copied photos. Demo links open YouTube videos checked with YouTube oEmbed on 2026-11-18. Some links are full routines that include the movement.",
+  "attribution": "Exercise diagrams are original generated illustrations of one 52-year-old man, made for FitTrack. They are not stock photos. Each image shows a start and a finish. Demo links open YouTube videos checked with YouTube oEmbed on 2026-11-18. Some links are full routines that include the movement.",
   "demos": {
     "squat": {
       "title": "Goblet squat",
-      "image": "images/exercises/squat.svg",
+      "image": "images/exercises/squat.jpg",
       "video": "https://www.youtube.com/watch?v=sOUCmU27mjE",
       "videoTitle": "Whole Body Workout for Beginners",
-      "videoBy": "OPEX Bristol"
+      "videoBy": "OPEX Bristol",
+      "webp": "images/exercises/squat.webp"
     },
     "air-squat": {
       "title": "Squat to a bench",
-      "image": "images/exercises/air-squat.svg",
+      "image": "images/exercises/air-squat.jpg",
       "video": "https://www.youtube.com/watch?v=sOUCmU27mjE",
       "videoTitle": "Whole Body Workout for Beginners",
-      "videoBy": "OPEX Bristol"
+      "videoBy": "OPEX Bristol",
+      "webp": "images/exercises/air-squat.webp"
     },
     "bench": {
       "title": "Dumbbell bench press",
-      "image": "images/exercises/bench.svg"
+      "image": "images/exercises/bench.jpg",
+      "webp": "images/exercises/bench.webp"
     },
     "floor-press": {
       "title": "Dumbbell floor press",
-      "image": "images/exercises/floor-press.svg"
+      "image": "images/exercises/floor-press.jpg",
+      "webp": "images/exercises/floor-press.webp"
     },
     "row": {
       "title": "One-arm dumbbell row",
-      "image": "images/exercises/row.svg",
+      "image": "images/exercises/row.jpg",
       "video": "https://www.youtube.com/watch?v=sOUCmU27mjE",
       "videoTitle": "Whole Body Workout for Beginners",
-      "videoBy": "OPEX Bristol"
+      "videoBy": "OPEX Bristol",
+      "webp": "images/exercises/row.webp"
     },
     "hinge": {
       "title": "Dumbbell Romanian deadlift",
-      "image": "images/exercises/hinge.svg",
+      "image": "images/exercises/hinge.jpg",
       "video": "https://www.youtube.com/watch?v=ZEnWV4kguKc",
       "videoTitle": "How to do romanian deadlifts safely",
-      "videoBy": "Jack Hanrahan Fitness"
+      "videoBy": "Jack Hanrahan Fitness",
+      "webp": "images/exercises/hinge.webp"
     },
     "kb-deadlift": {
       "title": "Kettlebell deadlift",
-      "image": "images/exercises/kb-deadlift.svg",
+      "image": "images/exercises/kb-deadlift.jpg",
       "video": "https://www.youtube.com/watch?v=ZEnWV4kguKc",
       "videoTitle": "How to do romanian deadlifts safely",
-      "videoBy": "Jack Hanrahan Fitness"
+      "videoBy": "Jack Hanrahan Fitness",
+      "webp": "images/exercises/kb-deadlift.webp"
     },
     "press": {
       "title": "Seated dumbbell press",
-      "image": "images/exercises/press.svg"
+      "image": "images/exercises/press.jpg",
+      "webp": "images/exercises/press.webp"
     },
     "half-kneel-press": {
       "title": "Half-kneeling one-arm press",
-      "image": "images/exercises/half-kneel-press.svg"
+      "image": "images/exercises/half-kneel-press.jpg",
+      "webp": "images/exercises/half-kneel-press.webp"
     },
     "dead-bug": {
       "title": "Dead bug",
-      "image": "images/exercises/dead-bug.svg",
+      "image": "images/exercises/dead-bug.jpg",
       "video": "https://www.youtube.com/watch?v=99ewh8IACrA",
       "videoTitle": "Ultimate Ab & Core Workout: Bird Dog, Dead Bug, & Bridge",
-      "videoBy": "Andrew's Fitness Training"
+      "videoBy": "Andrew's Fitness Training",
+      "webp": "images/exercises/dead-bug.webp"
     },
     "heel-slide": {
       "title": "Heel slide",
-      "image": "images/exercises/heel-slide.svg",
+      "image": "images/exercises/heel-slide.jpg",
       "video": "https://www.youtube.com/watch?v=99ewh8IACrA",
       "videoTitle": "Ultimate Ab & Core Workout: Bird Dog, Dead Bug, & Bridge",
-      "videoBy": "Andrew's Fitness Training"
+      "videoBy": "Andrew's Fitness Training",
+      "webp": "images/exercises/heel-slide.webp"
     },
     "figure4": {
       "title": "Figure-4 stretch",
-      "image": "images/exercises/figure4.svg"
+      "image": "images/exercises/figure4.jpg",
+      "webp": "images/exercises/figure4.webp"
     },
     "bike": {
       "title": "Recumbent bike",
-      "image": "images/exercises/bike.svg"
+      "image": "images/exercises/bike.jpg",
+      "webp": "images/exercises/bike.webp"
     },
     "open-book": {
       "title": "Open book rotation",
-      "image": "images/exercises/open-book.svg"
+      "image": "images/exercises/open-book.jpg",
+      "webp": "images/exercises/open-book.webp"
     },
     "split": {
       "title": "Split squat",
-      "image": "images/exercises/split.svg",
+      "image": "images/exercises/split.jpg",
       "video": "https://www.youtube.com/watch?v=EAO2twIivhs",
       "videoTitle": "35 Min Strength Training at Home Full Body Workout with Dumbbells",
-      "videoBy": "HASfit"
+      "videoBy": "HASfit",
+      "webp": "images/exercises/split.webp"
     },
     "rfess": {
       "title": "Rear-foot elevated split squat",
-      "image": "images/exercises/rfess.svg",
+      "image": "images/exercises/rfess.jpg",
       "video": "https://www.youtube.com/watch?v=EAO2twIivhs",
       "videoTitle": "35 Min Strength Training at Home Full Body Workout with Dumbbells",
-      "videoBy": "HASfit"
+      "videoBy": "HASfit",
+      "webp": "images/exercises/rfess.webp"
     },
     "pushup": {
       "title": "Incline push-up",
-      "image": "images/exercises/pushup.svg"
+      "image": "images/exercises/pushup.jpg",
+      "webp": "images/exercises/pushup.webp"
     },
     "bridge": {
       "title": "Glute bridge",
-      "image": "images/exercises/bridge.svg",
+      "image": "images/exercises/bridge.jpg",
       "video": "https://www.youtube.com/watch?v=99ewh8IACrA",
       "videoTitle": "Ultimate Ab & Core Workout: Bird Dog, Dead Bug, & Bridge",
-      "videoBy": "Andrew's Fitness Training"
+      "videoBy": "Andrew's Fitness Training",
+      "webp": "images/exercises/bridge.webp"
     },
     "db-bridge": {
       "title": "Dumbbell glute bridge",
-      "image": "images/exercises/db-bridge.svg",
+      "image": "images/exercises/db-bridge.jpg",
       "video": "https://www.youtube.com/watch?v=99ewh8IACrA",
       "videoTitle": "Ultimate Ab & Core Workout: Bird Dog, Dead Bug, & Bridge",
-      "videoBy": "Andrew's Fitness Training"
+      "videoBy": "Andrew's Fitness Training",
+      "webp": "images/exercises/db-bridge.webp"
     },
     "carry": {
       "title": "Farmer march",
-      "image": "images/exercises/carry.svg",
+      "image": "images/exercises/carry.jpg",
       "video": "https://www.youtube.com/watch?v=y1r9toPQNkM",
       "videoTitle": "8 Best Dumbbell Exercises Ever",
-      "videoBy": "ATHLEAN-X"
+      "videoBy": "ATHLEAN-X",
+      "webp": "images/exercises/carry.webp"
     },
     "suitcase": {
       "title": "Suitcase march",
-      "image": "images/exercises/suitcase.svg",
+      "image": "images/exercises/suitcase.jpg",
       "video": "https://www.youtube.com/watch?v=y1r9toPQNkM",
       "videoTitle": "8 Best Dumbbell Exercises Ever",
-      "videoBy": "ATHLEAN-X"
+      "videoBy": "ATHLEAN-X",
+      "webp": "images/exercises/suitcase.webp"
     },
     "bird-dog": {
       "title": "Bird dog",
-      "image": "images/exercises/bird-dog.svg",
+      "image": "images/exercises/bird-dog.jpg",
       "video": "https://www.youtube.com/watch?v=99ewh8IACrA",
       "videoTitle": "Ultimate Ab & Core Workout: Bird Dog, Dead Bug, & Bridge",
-      "videoBy": "Andrew's Fitness Training"
+      "videoBy": "Andrew's Fitness Training",
+      "webp": "images/exercises/bird-dog.webp"
     },
     "hip-flexor": {
       "title": "Hip flexor stretch",
-      "image": "images/exercises/hip-flexor.svg"
+      "image": "images/exercises/hip-flexor.jpg",
+      "webp": "images/exercises/hip-flexor.webp"
     },
     "ankle": {
       "title": "Ankle rocks",
-      "image": "images/exercises/ankle.svg"
+      "image": "images/exercises/ankle.jpg",
+      "webp": "images/exercises/ankle.webp"
     },
     "curl": {
       "title": "Seated hammer curl",
-      "image": "images/exercises/curl.svg"
+      "image": "images/exercises/curl.jpg",
+      "webp": "images/exercises/curl.webp"
     },
     "clam": {
       "title": "Side-lying clam",
-      "image": "images/exercises/clam.svg"
+      "image": "images/exercises/clam.jpg",
+      "webp": "images/exercises/clam.webp"
     },
     "hamstring": {
       "title": "Hamstring stretch",
-      "image": "images/exercises/hamstring.svg"
+      "image": "images/exercises/hamstring.jpg",
+      "webp": "images/exercises/hamstring.webp"
     },
     "breathe": {
       "title": "Quiet breathing",
-      "image": "images/exercises/breathe.svg"
+      "image": "images/exercises/breathe.jpg",
+      "webp": "images/exercises/breathe.webp"
     },
     "halo": {
       "title": "Kettlebell halo",
-      "image": "images/exercises/halo.svg",
+      "image": "images/exercises/halo.jpg",
       "video": "https://www.youtube.com/watch?v=Sci3lijQBmk",
       "videoTitle": "Kettlebell Halo Tutorial",
-      "videoBy": "Brittany van Schravendijk"
+      "videoBy": "Brittany van Schravendijk",
+      "webp": "images/exercises/halo.webp"
     },
     "cat-cow": {
       "title": "Cat-cow",
-      "image": "images/exercises/cat-cow.svg",
+      "image": "images/exercises/cat-cow.jpg",
       "video": "https://www.youtube.com/watch?v=Dq1XBAkIZEM",
       "videoTitle": "Adaptive Yoga for Kids",
-      "videoBy": "National Center on Health, Physical Activity and Disability"
+      "videoBy": "National Center on Health, Physical Activity and Disability",
+      "webp": "images/exercises/cat-cow.webp"
     },
     "knee-rock": {
       "title": "Supine knee rocks",
-      "image": "images/exercises/knee-rock.svg"
+      "image": "images/exercises/knee-rock.jpg",
+      "webp": "images/exercises/knee-rock.webp"
     },
     "thoracic": {
       "title": "Thoracic reach",
-      "image": "images/exercises/thoracic.svg"
+      "image": "images/exercises/thoracic.jpg",
+      "webp": "images/exercises/thoracic.webp"
     },
     "side-lie": {
       "title": "Side-lying wind-down",
-      "image": "images/exercises/side-lie.svg"
+      "image": "images/exercises/side-lie.jpg",
+      "webp": "images/exercises/side-lie.webp"
     }
   },
   "names": {

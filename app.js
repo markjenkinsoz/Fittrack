@@ -721,8 +721,12 @@
       ? `<a class="demo-link" href="${esc(demo.video)}" target="_blank" rel="noopener noreferrer">Watch demo</a>`
       : `<span class="hint">Illustration only</span>`;
     const credit = demo.videoTitle ? `<span class="hint">${esc(demo.videoTitle)}</span>` : "";
+    const webp = demo.webp || String(demo.image).replace(/\.jpe?g$/, ".webp");
     return `<figure class="demo" data-testid="exercise-demo">
-      <img src="${esc(demo.image)}" alt="${esc(demo.title)} start and finish" width="680" height="320" loading="lazy" />
+      <picture>
+        <source srcset="${esc(webp)}" type="image/webp" />
+        <img src="${esc(demo.image)}" alt="${esc(demo.title)} start and finish" width="1120" height="630" loading="lazy" decoding="async" />
+      </picture>
       <figcaption>${video}${credit}</figcaption>
     </figure>`;
   }
