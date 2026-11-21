@@ -870,7 +870,8 @@ test.describe("FitTrack PWA", () => {
     await page.getByRole("button", { name: "Level 1" }).click();
     await page.getByRole("button", { name: "Open Strength A" }).click();
     const squat = page.locator(".plan-ex", { hasText: "Squat to a bench" });
-    await expect(squat.locator("img")).toHaveAttribute("src", /images\/exercises\/air-squat\.svg/);
+    await expect(squat.locator("img")).toHaveAttribute("src", /images\/exercises\/air-squat\.jpg/);
+    await expect(squat.locator("source")).toHaveAttribute("type", "image/webp");
     await expect(squat.locator("img")).toHaveAttribute("loading", "lazy");
     await expect(squat.getByRole("link", { name: "Watch demo" })).toHaveAttribute("href", /youtube\.com\/watch\?v=sOUCmU27mjE/);
     const halo = page.locator("body");
@@ -878,7 +879,7 @@ test.describe("FitTrack PWA", () => {
     await page.getByRole("button", { name: "Open Kettlebell circuit" }).click();
     await expect(page.locator(".plan-ex", { hasText: "Kettlebell halo, very light" }).locator("img")).toHaveAttribute(
       "src",
-      /halo\.svg/
+      /halo\.jpg/
     );
     expect(halo).toBeTruthy();
 

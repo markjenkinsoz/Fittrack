@@ -739,11 +739,13 @@ h2.page-title {
   display: block;
   margin: 8px 0 4px;
 }
+.demo picture { display: block; }
 .demo img {
   width: 100%;
   height: auto;
   border-radius: 12px;
-  background: transparent;
+  background: #e8edf2;
+  border: 1px solid var(--line);
 }
 .demo figcaption { display: flex; flex-direction: column; gap: 4px; font-size: 0.85rem; }
 .demo-link { color: var(--cal); font-weight: 700; }
