@@ -190,6 +190,16 @@
           grams: numOrZero(food.qty.grams),
         };
       }
+      if (food.organic) item.organic = true;
+      if (food.ingredients) item.ingredients = String(food.ingredients).slice(0, 400);
+      if (food.manualNutrients && typeof food.manualNutrients === "object") {
+        const manual = {};
+        ["fat", "sat", "fiber", "added", "na"].forEach((key) => {
+          const n = Number(food.manualNutrients[key]);
+          if (Number.isFinite(n)) manual[key] = n;
+        });
+        if (Object.keys(manual).length) item.manualNutrients = manual;
+      }
       this.data.days[date].foods.push(item);
       this._touchRecent(item);
       if (food.favorite) this._ensureFavorite(item);
@@ -214,6 +224,17 @@
       if (patch.name != null) item.name = String(patch.name).trim();
       if (patch.calories != null) item.calories = numOrZero(patch.calories);
       if (patch.protein != null) item.protein = numOrZero(patch.protein);
+      if (patch.organic != null) item.organic = !!patch.organic;
+      if (patch.ingredients != null) item.ingredients = String(patch.ingredients).slice(0, 400);
+      if (patch.manualNutrients) {
+        const manual = {};
+        ["fat", "sat", "fiber", "added", "na"].forEach((key) => {
+          const n = Number(patch.manualNutrients[key]);
+          if (Number.isFinite(n)) manual[key] = n;
+        });
+        if (Object.keys(manual).length) item.manualNutrients = manual;
+        else delete item.manualNutrients;
+      }
       this.save();
     },
     deleteFood(date, id) {
@@ -226,6 +247,9 @@
       const rec = { name: item.name, calories: item.calories, protein: item.protein };
       if (item.items) rec.items = item.items;
       if (item.qty) rec.qty = item.qty;
+      if (item.organic) rec.organic = true;
+      if (item.ingredients) rec.ingredients = item.ingredients;
+      if (item.manualNutrients) rec.manualNutrients = item.manualNutrients;
       this.data.recents = [
         rec,
         ...this.data.recents.filter((r) => r.name.toLowerCase() !== rec.name.toLowerCase()),
@@ -240,6 +264,10 @@
         if (item.items) existing.items = item.items;
         else delete existing.items;
         if (item.qty) existing.qty = item.qty;
+        existing.organic = !!item.organic;
+        existing.ingredients = item.ingredients || "";
+        if (item.manualNutrients) existing.manualNutrients = item.manualNutrients;
+        else delete existing.manualNutrients;
       } else {
         const fav = {
           id: uid(),
@@ -249,6 +277,9 @@
         };
         if (item.items) fav.items = item.items;
         if (item.qty) fav.qty = item.qty;
+        if (item.organic) fav.organic = true;
+        if (item.ingredients) fav.ingredients = item.ingredients;
+        if (item.manualNutrients) fav.manualNutrients = item.manualNutrients;
         this.data.favorites.push(fav);
       }
     },
@@ -622,6 +653,9 @@
       grams: numOrZero(item.grams),
       calories: numOrZero(item.calories),
       protein: numOrZero(item.protein),
+      organic: !!item.organic,
+      ingredients: item.ingredients ? String(item.ingredients).slice(0, 400) : "",
+      manualNutrients: item.manualNutrients || null,
     }));
   }
 
@@ -666,6 +700,383 @@
       streak += 1;
     }
     return streak;
+  }
+
+  const GRADE_CUTS = [
+    [97, "A+"],
+    [93, "A"],
+    [90, "A-"],
+    [87, "B+"],
+    [83, "B"],
+    [80, "B-"],
+    [77, "C+"],
+    [73, "C"],
+    [70, "C-"],
+    [67, "D+"],
+    [63, "D"],
+    [60, "D-"],
+  ];
+  const ADDITIVE_RE = /high fructose|hydrogenated|artificial|maltodextrin|\bmsg\b|monosodium glutamate|red 40|yellow 5|yellow 6|blue 1|blue 2|sucralose|aspartame|acesulfame|saccharin|sodium benzoate|potassium sorbate|\bbha\b|\bbht\b|polysorbate|carrageenan|\bdatem\b|interesterified|sodium nitrite|sodium nitrate/i;
+
+  let nutritionByName = {};
+  let foodByName = new Map();
+
+  function letterFor(score) {
+    const n = Number(score);
+    for (let i = 0; i < GRADE_CUTS.length; i++) {
+      if (n >= GRADE_CUTS[i][0]) return GRADE_CUTS[i][1];
+    }
+    return "F";
+  }
+  function gradeBand(letter) {
+    const c = String(letter || "F").charAt(0).toLowerCase();
+    return "g-" + ("abcdf".includes(c) ? c : "f");
+  }
+  function novaFromName(name) {
+    const d = String(name || "").toLowerCase();
+    if (
+      /fast food|candy|candies|carbonated|soft drink|cookie|doughnut|donut|toaster pastry|frosted|fruit drink|sports drink|energy drink|milk\s?shake|nugget|breaded|frozen novelt|ice cream|pudding|ready-to-eat|sweetened|chocolate coated|candy coated|honey roasted|breakfast bar|granola bar|snack bar|potato chips|tortilla chips|cracker|frankfurter|bologna|luncheon|hot dog|margarine|shortening|whipped topping|coffee creamer|fruit punch|lemonade|artificially sweetened|low calorie|with sugar/.test(
+        d
+      ) ||
+      /\bdiet\b/.test(d)
+    ) {
+      return 4;
+    }
+    if (
+      /(^|,\s*)oil\b|\bbutter\b|sugars,|honey|syrup|flour|salt,|vinegar|spices,/.test(d) &&
+      !/margarine|sweetened/.test(d)
+    ) {
+      return 2;
+    }
+    if (/canned|cheese|bread|yogurt|sausage|\bham\b|bacon|smoked|cured|pickled|salted|\bjams?\b|sauce,|dressing/.test(d)) {
+      if (/yogurt, greek, plain|yogurt, plain/.test(d)) return 1;
+      if (/breaded|sweetened/.test(d)) return 4;
+      return 3;
+    }
+    return 1;
+  }
+  function restaurantNova(name) {
+    const d = String(name || "").toLowerCase();
+    if (
+      /broccoli|apple|banana|pickle|black coffee|unsweetened|bottled water|tap water|garden side salad|side salad|fruit cup/.test(d) &&
+      !/sauce|dressing|chocolate|candy|syrup|shake/.test(d)
+    ) {
+      return 1;
+    }
+    if (/\bmilk\b/.test(d) && !/shake|malt|chocolate/.test(d)) return 1;
+    return 4;
+  }
+  function decodeNutrition(row) {
+    if (!row || !row.length) return null;
+    return {
+      src: row[0],
+      fdc: row[1],
+      nova: Number(row[2]) || 1,
+      how: row[3] || "name",
+      simple: row[4] === 1 || row[4] === true,
+      fat: row[5],
+      sat: row[6],
+      trans: row[7],
+      carb: row[8],
+      fiber: row[9],
+      sugar: row[10],
+      added: row[11],
+      na: row[12],
+      chol: row[13],
+      k: row[14],
+      ca: row[15],
+      fe: row[16],
+      vd: row[17],
+    };
+  }
+  function sourceLabel(src) {
+    if (src === "fd") return "USDA Foundation Foods, December 2025";
+    if (src === "sr") return "USDA SR Legacy, April 2018";
+    if (src === "off") return "Open Food Facts";
+    return "USDA FoodData Central";
+  }
+  function scoreFood(input) {
+    const kcal = Number(input.kcal);
+    const reasons = [];
+    const cleanReasons = [];
+    let nutrient = null;
+    let limited = false;
+    const parts = [];
+    const pushPart = (value, weight) => {
+      if (value == null || !Number.isFinite(value)) return;
+      parts.push({ value: clamp(value, 0, 100), weight });
+    };
+    if (!(kcal > 0)) {
+      reasons.push("There are almost no calories, so there is no nutrient-density score.");
+      limited = true;
+    } else {
+      const per = 100 / kcal;
+      if (input.pro != null && Number.isFinite(Number(input.pro))) {
+        const density = Number(input.pro) * per;
+        const value = clamp((density / 8) * 100, 0, 100);
+        pushPart(value, 3);
+        reasons.push(
+          value >= 80
+            ? "Protein is high for the calories."
+            : value >= 45
+              ? "Protein is moderate for the calories."
+              : "Protein is low for the calories."
+        );
+      }
+      const carb = input.carb == null ? null : Number(input.carb);
+      const fiber = input.fiber == null ? null : Number(input.fiber);
+      if (fiber != null && Number.isFinite(fiber) && !(carb != null && carb < 5)) {
+        const value = clamp(((fiber * per) / 3.5) * 100, 0, 100);
+        pushPart(value, 2);
+        reasons.push(
+          value >= 70
+            ? "Fiber is high for the calories."
+            : value >= 30
+              ? "Fiber is moderate for the calories."
+              : "Fiber is low for the calories."
+        );
+      } else if (carb != null && carb < 5 && fiber != null) {
+        reasons.push("Fiber is not scored because this food has almost no carbohydrate.");
+      }
+      if (input.sat != null && Number.isFinite(Number(input.sat))) {
+        const value = clamp(100 - ((Number(input.sat) * per) / 5) * 100, 0, 100);
+        pushPart(value, 2);
+        reasons.push(
+          value >= 80
+            ? "Saturated fat is low for the calories."
+            : value >= 50
+              ? "Saturated fat is moderate for the calories."
+              : "Saturated fat is high for the calories."
+        );
+      }
+      if (input.na != null && Number.isFinite(Number(input.na))) {
+        const value = clamp(100 - ((Number(input.na) * per) / 600) * 100, 0, 100);
+        pushPart(value, 2);
+        reasons.push(
+          value >= 80
+            ? "Sodium is low for the calories."
+            : value >= 50
+              ? "Sodium is moderate for the calories."
+              : "Sodium is high for the calories."
+        );
+      }
+      if (input.added != null && Number.isFinite(Number(input.added))) {
+        const value = clamp(100 - ((Number(input.added) * per) / 15) * 100, 0, 100);
+        pushPart(value, 2);
+        reasons.push(
+          value >= 80
+            ? "Added sugar is low or none."
+            : value >= 50
+              ? "Added sugar is moderate for the calories."
+              : "Added sugar is high for the calories."
+        );
+      } else if (input.sugar != null) {
+        reasons.push("Added sugar was not published, so total sugar is shown and not scored.");
+      }
+      if (input.trans != null && Number.isFinite(Number(input.trans))) {
+        const value = clamp(100 - ((Number(input.trans) * per) / 0.5) * 100, 0, 100);
+        pushPart(value, 2);
+        if (Number(input.trans) > 0 && value < 90) reasons.push("Trans fat is on the record.");
+      }
+      if (parts.length < 3) {
+        limited = true;
+        reasons.unshift("Only some nutrients are on file, so this nutrient score is partial.");
+      }
+      if (parts.length) {
+        const weight = parts.reduce((sum, part) => sum + part.weight, 0);
+        nutrient = parts.reduce((sum, part) => sum + part.value * part.weight, 0) / weight;
+        const bonus = (amount, goal, cap, label) => {
+          if (amount == null || !Number.isFinite(Number(amount)) || !(goal > 0)) return 0;
+          const points = Math.min(cap, ((Number(amount) * per) / goal) * cap);
+          if (points >= cap * 0.7) reasons.push(label);
+          return points;
+        };
+        nutrient = Math.min(
+          100,
+          nutrient +
+            bonus(input.k, 340, 3, "Potassium is high for the calories.") +
+            bonus(input.ca, 130, 1.5, "Calcium is high for the calories.") +
+            bonus(input.fe, 1.8, 1.5, "Iron is high for the calories.") +
+            bonus(input.vd, 2, 2, "Vitamin D is high for the calories.")
+        );
+      }
+    }
+    const nova = input.nova || novaFromName(input.name);
+    const bases = { 1: 90, 2: 72, 3: 56, 4: 30 };
+    let clean = bases[nova] || 58;
+    if (input.how === "restaurant") {
+      cleanReasons.push(
+        nova === 1
+          ? "This menu item is grouped as a plain food, not a mixed restaurant dish."
+          : "Restaurant items are grouped as ultra-processed unless they are a plain side, milk, coffee, tea, or fruit."
+      );
+    } else if (nova === 1) cleanReasons.push("Grouped as a whole or minimally processed food.");
+    else if (nova === 2) cleanReasons.push("Grouped as a culinary ingredient such as an oil, sweetener, or flour.");
+    else if (nova === 3) cleanReasons.push("Grouped as a processed food, such as cheese, bread, or cured meat.");
+    else cleanReasons.push("Grouped as ultra-processed.");
+    if (input.how === "name") cleanReasons.push("The processing group was estimated from the name.");
+    const ingredients = String(input.ingredients || "").trim();
+    if (ingredients) {
+      const list = ingredients.split(/[,;\n]/).map((part) => part.trim()).filter(Boolean);
+      const additives = list.filter((part) => ADDITIVE_RE.test(part)).length;
+      if (list.length && list.length <= 3 && !additives) {
+        clean += 6;
+        cleanReasons.push("The ingredient list is short.");
+      } else if (list.length >= 8) {
+        clean -= 8;
+        cleanReasons.push("The ingredient list is long.");
+      }
+      if (additives) {
+        clean -= Math.min(18, additives * 6);
+        cleanReasons.push("The ingredient list includes additives.");
+      }
+    } else if (input.simple) {
+      clean += 6;
+      cleanReasons.push("It is a single food, not a blend.");
+    }
+    if (input.organic) {
+      clean += 8;
+      cleanReasons.push("Marked organic. That adds 8 points to the clean score and does not change the nutrients.");
+    }
+    clean = clamp(clean, 0, 100);
+    let overall;
+    if (nutrient == null) overall = clean;
+    else if (limited) overall = nutrient * 0.4 + clean * 0.6;
+    else overall = nutrient * 0.5 + clean * 0.5;
+    return {
+      nutrient,
+      clean,
+      overall,
+      letter: letterFor(overall),
+      limited,
+      noEnergy: !(kcal > 0),
+      reasons,
+      cleanReasons,
+      nova,
+    };
+  }
+  function gradeFoodRecord(food, extras) {
+    const extra = extras || {};
+    if (food && food.restaurant) {
+      return scoreFood({
+        name: food.restaurant + " " + food.name,
+        kcal: food.calories,
+        pro: food.protein,
+        nova: restaurantNova(food.name),
+        how: "restaurant",
+        simple: false,
+        organic: !!extra.organic,
+        ingredients: extra.ingredients || "",
+      });
+    }
+    const nut = (food && food.nut) || null;
+    return scoreFood({
+      name: food ? food.name : "",
+      kcal: food ? food.kcal100 : 0,
+      pro: food ? food.pro100 : 0,
+      fat: nut ? nut.fat : null,
+      sat: nut ? nut.sat : null,
+      trans: nut ? nut.trans : null,
+      carb: nut ? nut.carb : null,
+      fiber: nut ? nut.fiber : null,
+      sugar: nut ? nut.sugar : null,
+      added: nut ? nut.added : null,
+      na: nut ? nut.na : null,
+      chol: nut ? nut.chol : null,
+      k: nut ? nut.k : null,
+      ca: nut ? nut.ca : null,
+      fe: nut ? nut.fe : null,
+      vd: nut ? nut.vd : null,
+      nova: nut ? nut.nova : novaFromName(food && food.name),
+      how: nut ? nut.how : "name",
+      simple: !!(nut && nut.simple),
+      organic: !!extra.organic,
+      ingredients: extra.ingredients || (food && food.ingredients) || "",
+    });
+  }
+  function findCachedFood(name) {
+    if (!name) return null;
+    return foodByName.get(String(name).toLowerCase()) || null;
+  }
+  function gradeLogFood(food) {
+    if (!food) return scoreFood({ name: "", kcal: 0, nova: 1, how: "name" });
+    if (food.items && food.items.length) {
+      const graded = food.items.map(gradeLogFood);
+      const weights = food.items.map((item) => Math.max(numOrZero(item.calories), 20));
+      const weight = weights.reduce((sum, n) => sum + n, 0) || 1;
+      const overall = graded.reduce((sum, grade, i) => sum + grade.overall * weights[i], 0) / weight;
+      const clean = graded.reduce((sum, grade, i) => sum + grade.clean * weights[i], 0) / weight;
+      const withNutrient = graded.map((grade, i) => (grade.nutrient == null ? null : [grade.nutrient, weights[i]])).filter(Boolean);
+      const nutrientWeight = withNutrient.reduce((sum, pair) => sum + pair[1], 0);
+      const nutrient = nutrientWeight
+        ? withNutrient.reduce((sum, pair) => sum + pair[0] * pair[1], 0) / nutrientWeight
+        : null;
+      return {
+        nutrient,
+        clean,
+        overall,
+        letter: letterFor(overall),
+        limited: graded.some((grade) => grade.limited),
+        reasons: ["This meal grade is the calorie-weighted average of its foods."],
+        cleanReasons: [],
+        nova: null,
+      };
+    }
+    if (food.manualNutrients) {
+      const manual = food.manualNutrients;
+      return scoreFood({
+        name: food.name,
+        kcal: numOrZero(food.calories),
+        pro: numOrZero(food.protein),
+        fat: manual.fat,
+        sat: manual.sat,
+        fiber: manual.fiber,
+        added: manual.added,
+        na: manual.na,
+        nova: novaFromName(food.name),
+        how: "name",
+        simple: false,
+        organic: !!food.organic,
+        ingredients: food.ingredients || "",
+      });
+    }
+    const cached = findCachedFood(food.name);
+    if (cached) return gradeFoodRecord(cached, food);
+    const restaurantLike = /culver|braum|chipotle|panera/.test(String(food.name || "").toLowerCase());
+    return scoreFood({
+      name: food.name,
+      kcal: numOrZero(food.calories),
+      pro: numOrZero(food.protein),
+      nova: restaurantLike ? restaurantNova(food.name) : novaFromName(food.name),
+      how: restaurantLike ? "restaurant" : "name",
+      simple: false,
+      organic: !!food.organic,
+      ingredients: food.ingredients || "",
+    });
+  }
+  function gradeDay(foods) {
+    if (!foods || !foods.length) return null;
+    const graded = foods.map((food) => ({
+      grade: gradeLogFood(food),
+      weight: Math.max(numOrZero(food.calories), 20),
+    }));
+    const weight = graded.reduce((sum, item) => sum + item.weight, 0) || 1;
+    const overall = graded.reduce((sum, item) => sum + item.grade.overall * item.weight, 0) / weight;
+    const clean = graded.reduce((sum, item) => sum + item.grade.clean * item.weight, 0) / weight;
+    const withNutrient = graded.filter((item) => item.grade.nutrient != null);
+    const nutrientWeight = withNutrient.reduce((sum, item) => sum + item.weight, 0);
+    const nutrient = nutrientWeight
+      ? withNutrient.reduce((sum, item) => sum + item.grade.nutrient * item.weight, 0) / nutrientWeight
+      : null;
+    return { nutrient, clean, overall, letter: letterFor(overall), limited: graded.some((item) => item.grade.limited) };
+  }
+  function gradeHelpHtml() {
+    return `
+      <p>Every food gets a letter from F up to A+. The letter is half nutrient density and half how processed the food is. It is a shopping guide, not a medical score.</p>
+      <p><strong>Nutrient score.</strong> Published numbers are compared per calorie. Protein and fiber raise it. Saturated fat, sodium, added sugar, and trans fat lower it. Potassium, calcium, iron, and vitamin D can raise it a little when they are high for the calories. A missing number is skipped. It is not treated as zero. Cholesterol is shown and not scored. Fiber is skipped when a food is almost all protein or fat, so chicken is not punished for having no fiber. Total sugar in fruit and milk is not penalized. Only published added sugar is.</p>
+      <p><strong>Clean score.</strong> Whole foods start at 90. Culinary ingredients such as oil, butter, and sugar start at 72. Processed foods such as cheese, bread, and cured meat start at 56. Ultra-processed foods such as soda, chips, and fast food start at 30. A single food or a short ingredient list adds 6. A long list or additives such as hydrogenated oil, artificial sweeteners, artificial colors, or high-fructose corn syrup lowers it. Marking a food organic adds 8 points to this score only. USDA generic foods are not assumed to be organic.</p>
+      <p><strong>Letter.</strong> 97 A+, 93 A, 90 A-, 87 B+, 83 B, 80 B-, 77 C+, 73 C, 70 C-, 67 D+, 63 D, 60 D-, and below 60 is F. When only a few nutrients are on file, the letter leans toward the clean score (40% nutrient, 60% clean). Otherwise the two scores count equally.</p>
+      <p>A day’s grade is the calorie-weighted average of what you logged. Items under 20 calories still count a little. A meal is the calorie-weighted average of its foods. Restaurant items use the chain’s published calories and protein. Other restaurant nutrients stay blank.</p>`;
   }
 
   let restaurantsCache = null;
@@ -732,39 +1143,53 @@
   function ensureFoods() {
     if (foodsCache) return Promise.resolve(foodsCache);
     if (!foodsLoading) {
+      const nutritionPromise = fetch("./data/nutrition.json")
+        .then((res) => (res.ok ? res.json() : { foods: {} }))
+        .catch(() => ({ foods: {} }));
       foodsLoading = fetch("./data/foods/index.json")
         .then((res) => {
           if (!res.ok) throw new Error("foods");
           return res.json();
         })
         .then((index) =>
-          Promise.all(
-            (index.shards || []).map((shard) =>
-              fetch("./data/foods/" + shard + ".json").then((res) => {
-                if (!res.ok) throw new Error("shard");
-                return res.json();
-              })
-            )
-          )
+          Promise.all([
+            Promise.all(
+              (index.shards || []).map((shard) =>
+                fetch("./data/foods/" + shard + ".json").then((res) => {
+                  if (!res.ok) throw new Error("shard");
+                  return res.json();
+                })
+              )
+            ),
+            nutritionPromise,
+          ])
         )
-        .then((parts) => {
+        .then((loaded) => {
+          const parts = loaded[0];
+          const nutritionDoc = loaded[1] || {};
+          nutritionByName = nutritionDoc.foods || {};
           const list = [];
+          const byName = new Map();
           parts.forEach((part) => {
             (part.f || []).forEach((row) => {
               const portions = (row[3] || []).map((portion) => ({
                 label: portion[0],
                 grams: Number(portion[1]) || 0,
               }));
-              list.push({
+              const food = {
                 name: row[0],
                 kcal100: Number(row[1]) || 0,
                 pro100: Number(row[2]) || 0,
                 portions,
+                nut: decodeNutrition(nutritionByName[row[0]]),
                 hay: String(row[0]).toLowerCase(),
-              });
+              };
+              list.push(food);
+              byName.set(food.hay, food);
             });
           });
           foodsCache = list;
+          foodByName = byName;
           return list;
         })
         .catch((err) => {
@@ -812,6 +1237,7 @@
       if (/with cheese|with meat|with vegetable/.test(food.hay) && !/cheese|meat|vegetable/.test(asks)) score -= 3;
       if (/fast food|restaurant/.test(food.hay) && !/restaurant|fast/.test(asks)) score -= 1;
       if (/no added fat/.test(food.hay) && !/butter|oil|margarine|fat/.test(asks)) score += 4;
+      if (food.nut && food.nut.how === "listed") score += 3;
       score -= food.name.length / 90;
       hits.push({ food, score });
     }
@@ -846,6 +1272,9 @@
     const gramsEach = gramOut ? gramOut : 100;
     const kcal100 = gramsEach > 0 ? (calories * 100) / gramsEach : calories;
     const pro100 = gramsEach > 0 ? ((protein || 0) * 100) / gramsEach : protein || 0;
+    const per100 = (key) => finiteOrNull(nutriments[key]);
+    const sodiumG = per100("sodium_100g");
+    const novaGroup = Number(product.nova_group);
     return {
       name,
       kcal100,
@@ -855,6 +1284,27 @@
       protein: round1(protein || 0),
       grams: Math.round(gramsEach),
       serving: serving || "1 serving",
+      ingredients: product.ingredients_text ? String(product.ingredients_text).slice(0, 400) : "",
+      nut: {
+        src: "off",
+        fdc: "",
+        nova: novaGroup >= 1 && novaGroup <= 4 ? novaGroup : novaFromName(name),
+        how: novaGroup >= 1 && novaGroup <= 4 ? "listed" : "name",
+        simple: false,
+        fat: per100("fat_100g"),
+        sat: per100("saturated-fat_100g"),
+        trans: per100("trans-fat_100g"),
+        carb: per100("carbohydrates_100g"),
+        fiber: per100("fiber_100g"),
+        sugar: per100("sugars_100g"),
+        added: per100("added-sugars_100g"),
+        na: sodiumG == null ? null : sodiumG * 1000,
+        chol: per100("cholesterol_100g"),
+        k: per100("potassium_100g"),
+        ca: per100("calcium_100g"),
+        fe: per100("iron_100g"),
+        vd: per100("vitamin-d_100g"),
+      },
     };
   }
 
@@ -891,27 +1341,30 @@
   function defaultPortion(food) {
     return (food.portions && food.portions[0]) || { label: "100 g", grams: 100 };
   }
-  function foodHitButton(food, source) {
+  function foodHitButton(food, source, index) {
+    const grade = gradeFoodRecord(food);
+    const pill = `<span class="grade-pill ${gradeBand(grade.letter)}" data-testid="grade-pill" aria-hidden="true">${esc(grade.letter)}</span>`;
+    const info = `<button type="button" class="info-btn" data-act="food-info" data-source="${esc(source)}" data-index="${index}">Details</button>`;
     if (food.restaurant) {
       const label = food.restaurant + " " + food.name;
-      return `<button type="button" class="food-hit" data-act="pick-food" data-source="restaurant" data-fixed="1"
+      return `<div class="hit-row"><button type="button" class="food-hit" data-act="pick-food" data-source="restaurant" data-fixed="1"
         data-name="${esc(label)}" data-cal="${esc(food.calories)}" data-pro="${esc(food.protein)}"
         data-serving="${esc(food.serving || "1 serving")}">
         <span class="tag">${esc(food.restaurant)}</span>
-        <span class="name">${esc(food.name)}</span>
+        <span class="hit-top"><span class="name">${esc(food.name)}</span>${pill}</span>
         <span class="meta">${esc(food.serving || "1 serving")} · ${fmtNum(food.calories)} cal · ${fmtNum(food.protein, 1)} g protein</span>
-      </button>`;
+      </button>${info}</div>`;
     }
     const portion = defaultPortion(food);
     const calories = Math.round((food.kcal100 * portion.grams) / 100);
     const protein = round1((food.pro100 * portion.grams) / 100);
-    return `<button type="button" class="food-hit" data-act="pick-food" data-source="${esc(source)}"
+    return `<div class="hit-row"><button type="button" class="food-hit" data-act="pick-food" data-source="${esc(source)}"
       data-name="${esc(food.name)}" data-kcal100="${esc(food.kcal100)}" data-pro100="${esc(food.pro100)}"
       data-cal="${esc(calories)}" data-pro="${esc(protein)}" data-grams="${esc(portion.grams)}"
       data-serving="${esc(portion.label)}" data-portions="${esc(JSON.stringify(food.portions || []))}">
-      <span class="name">${esc(food.name)}</span>
+      <span class="hit-top"><span class="name">${esc(food.name)}</span>${pill}</span>
       <span class="meta">${esc(portion.label)} · ${esc(portion.grams)} g · ${fmtNum(calories)} cal · ${fmtNum(protein, 1)} g</span>
-    </button>`;
+    </button>${info}</div>`;
   }
 
   let searchTimer = 0;
@@ -938,8 +1391,9 @@
       const place = document.getElementById("food-place");
       const placeId = place ? place.value : "";
       const hits = placeId ? [] : searchFoods(query, list);
+      ui.usdaHits = hits;
       box.innerHTML = hits.length
-        ? `<p class="result-label">Common foods</p>${hits.map((food) => foodHitButton(food, "usda")).join("")}`
+        ? `<p class="result-label">Common foods</p>${hits.map((food, index) => foodHitButton(food, "usda", index)).join("")}`
         : placeId
           ? ""
           : `<p class="hint">No common foods match.</p>`;
@@ -983,8 +1437,9 @@
     });
     hits.sort((a, b) => b.score - a.score || a.food.name.localeCompare(b.food.name));
     const top = hits.slice(0, 8).map((hit) => hit.food);
+    ui.restaurantHits = top;
     box.innerHTML = top.length
-      ? `<p class="result-label">Restaurant menus</p>${top.map((food) => foodHitButton(food, "restaurant")).join("")}`
+      ? `<p class="result-label">Restaurant menus</p>${top.map((food, index) => foodHitButton(food, "restaurant", index)).join("")}`
       : `<p class="hint">No restaurant items match.</p>`;
   }
 
@@ -1022,7 +1477,7 @@
       const url =
         "https://world.openfoodfacts.org/cgi/search.pl?search_terms=" +
         encodeURIComponent(query) +
-        "&search_simple=1&action=process&json=1&page_size=8&fields=code,product_name,brands,nutriments,serving_size,serving_quantity&" +
+        "&search_simple=1&action=process&json=1&page_size=8&fields=code,product_name,brands,nutriments,serving_size,serving_quantity,ingredients_text,nova_group&" +
         OFF_QUERY;
       const res = await fetch(url, { headers: { Accept: "application/json" } });
       if (seq !== searchSeq) return;
@@ -1035,7 +1490,8 @@
         return;
       }
       status.textContent = "Brands from Open Food Facts";
-      box.innerHTML = hits.map((food) => foodHitButton(food, "off")).join("");
+      ui.offHits = hits;
+      box.innerHTML = hits.map((food, index) => foodHitButton(food, "off", index)).join("");
     } catch (err) {
       if (seq !== searchSeq) return;
       status.textContent = "Brand search is unavailable right now. Common foods and manual entry still work.";
@@ -1060,7 +1516,7 @@
       const url =
         "https://world.openfoodfacts.org/api/v2/product/" +
         encodeURIComponent(code) +
-        ".json?fields=code,product_name,brands,nutriments,serving_size,serving_quantity,status&" +
+        ".json?fields=code,product_name,brands,nutriments,serving_size,serving_quantity,ingredients_text,nova_group,status&" +
         OFF_QUERY;
       const res = await fetch(url, { headers: { Accept: "application/json" } });
       if (!res.ok) throw new Error("barcode");
@@ -1084,6 +1540,7 @@
       ui.foodBase = {
         name: base.name,
         fixed: true,
+        restaurant: base.restaurant || "Menu",
         perCalories: Number(base.calories) || 0,
         perProtein: Number(base.protein) || 0,
         servingLabel: serving,
@@ -1116,7 +1573,8 @@
     const pro100 = base.pro100 != null ? Number(base.pro100) : portions && portions[0] ? (Number(base.protein) * 100) / portions[0].grams : Number(base.protein) || 0;
     const food = { name: base.name, kcal100, pro100, portions: portions || [] };
     const units = unitsFor(food);
-    ui.foodBase = { name: food.name, kcal100, pro100, units };
+    const cached = findCachedFood(food.name);
+    ui.foodBase = { name: food.name, kcal100, pro100, units, nut: (cached && cached.nut) || base.nut || null };
     const name = document.getElementById("food-name");
     const box = document.getElementById("serving-adjust");
     const unitSelect = document.getElementById("food-unit");
@@ -1165,6 +1623,7 @@
       if (cal) cal.value = String(calories);
       if (pro) pro.value = String(protein);
       if (label) label.textContent = quantityLabel(amount, unit) + " · " + calories + " cal · " + protein + " g protein";
+      paintPickGrade();
       return;
     }
     const grams = unit.gramsEach * amount;
@@ -1183,6 +1642,23 @@
         protein +
         " g protein";
     }
+    paintPickGrade();
+  }
+  function paintPickGrade() {
+    const el = document.getElementById("pick-grade");
+    if (!el || !ui.foodBase) return;
+    const food = ui.foodBase.fixed
+      ? { restaurant: "", name: ui.foodBase.name, calories: ui.foodBase.perCalories, protein: ui.foodBase.perProtein }
+      : { name: ui.foodBase.name, kcal100: ui.foodBase.kcal100, pro100: ui.foodBase.pro100, nut: ui.foodBase.nut };
+    if (ui.foodBase.fixed) food.restaurant = ui.foodBase.restaurant || "Menu";
+    const grade = gradeFoodRecord(food, { organic: formOrganic(), ingredients: formIngredients() });
+    el.textContent =
+      "Grade " +
+      grade.letter +
+      " · nutrient " +
+      (grade.nutrient == null ? "—" : Math.round(grade.nutrient)) +
+      " · clean " +
+      Math.round(grade.clean);
   }
   function currentQty() {
     if (!ui.foodBase) return null;
@@ -1199,6 +1675,8 @@
         grams: 0,
         calories: Math.round(ui.foodBase.perCalories * amount),
         protein: round1(ui.foodBase.perProtein * amount),
+        organic: formOrganic(),
+        ingredients: formIngredients(),
       };
     }
     const grams = unit.gramsEach * amount;
@@ -1211,6 +1689,8 @@
       grams: round1(grams),
       calories: Math.round((ui.foodBase.kcal100 * grams) / 100),
       protein: round1((ui.foodBase.pro100 * grams) / 100),
+      organic: formOrganic(),
+      ingredients: formIngredients(),
     };
   }
   function currentLine() {
@@ -1228,6 +1708,9 @@
       grams: 0,
       calories: numOrZero((document.getElementById("food-cal") || {}).value),
       protein: numOrZero((document.getElementById("food-pro") || {}).value),
+      organic: formOrganic(),
+      ingredients: formIngredients(),
+      manualNutrients: readManualNutrients(),
     };
   }
   function renderMeal() {
@@ -1473,6 +1956,193 @@
       </section>`;
   }
 
+  function dailyGradeCard(foods) {
+    const grade = gradeDay(foods);
+    if (!grade) {
+      return `<section class="grade-today" data-testid="daily-grade">
+        <span class="grade-pill g-n">–</span>
+        <div>
+          <div class="k">Today's grade</div>
+          <p class="hint">Log a food to grade the day.</p>
+        </div>
+      </section>`;
+    }
+    const nut = grade.nutrient == null ? "—" : Math.round(grade.nutrient);
+    return `<section class="grade-today" data-testid="daily-grade">
+      <span class="grade-pill ${gradeBand(grade.letter)}">${esc(grade.letter)}</span>
+      <div>
+        <div class="k">Today's grade</div>
+        <div class="v">Nutrient ${nut} · Clean ${Math.round(grade.clean)}</div>
+        <button type="button" class="text-btn" data-act="grade-help">How grades work</button>
+      </div>
+    </section>`;
+  }
+  function foodGradeButton(food) {
+    const grade = gradeLogFood(food);
+    return `<button type="button" class="grade-pill ${gradeBand(grade.letter)}" data-act="food-info" data-log-id="${esc(food.id)}" aria-label="Grade ${esc(grade.letter)} for ${esc(food.name)}">${esc(grade.letter)}</button>`;
+  }
+  function historyGradeLetter(keys) {
+    const days = (keys || []).map((key) => gradeDay(store.foodsOn(key))).filter(Boolean);
+    if (!days.length) return "—";
+    const overall = days.reduce((sum, grade) => sum + grade.overall, 0) / days.length;
+    return letterFor(overall);
+  }
+  function fmtNutrient(value, unit) {
+    if (value == null || !Number.isFinite(Number(value))) return "—";
+    const n = Number(value);
+    if (unit === "mg" || unit === "") return fmtNum(n, unit === "mg" ? 0 : n >= 100 ? 0 : 1);
+    if (unit === "mcg") return fmtNum(n, 1);
+    return fmtNum(n, Math.abs(n) >= 10 ? 1 : 1);
+  }
+  function nutrientRows(basis, scaledBasis) {
+    const rows = [
+      ["Calories", basis.kcal, scaledBasis && scaledBasis.kcal, ""],
+      ["Protein", basis.pro, scaledBasis && scaledBasis.pro, "g"],
+      ["Total fat", basis.fat, scaledBasis && scaledBasis.fat, "g"],
+      ["Saturated fat", basis.sat, scaledBasis && scaledBasis.sat, "g"],
+      ["Trans fat", basis.trans, scaledBasis && scaledBasis.trans, "g"],
+      ["Carbs", basis.carb, scaledBasis && scaledBasis.carb, "g"],
+      ["Fiber", basis.fiber, scaledBasis && scaledBasis.fiber, "g"],
+      ["Total sugar", basis.sugar, scaledBasis && scaledBasis.sugar, "g"],
+      ["Added sugar", basis.added, scaledBasis && scaledBasis.added, "g"],
+      ["Sodium", basis.na, scaledBasis && scaledBasis.na, "mg"],
+      ["Cholesterol", basis.chol, scaledBasis && scaledBasis.chol, "mg"],
+      ["Potassium", basis.k, scaledBasis && scaledBasis.k, "mg"],
+      ["Calcium", basis.ca, scaledBasis && scaledBasis.ca, "mg"],
+      ["Iron", basis.fe, scaledBasis && scaledBasis.fe, "mg"],
+      ["Vitamin D", basis.vd, scaledBasis && scaledBasis.vd, "mcg"],
+    ];
+    return rows
+      .map((row) => {
+        const unit = row[3] ? " " + row[3] : "";
+        const second = scaledBasis
+          ? `<span>${esc(fmtNutrient(row[2], row[3]))}${row[2] == null ? "" : esc(unit)}</span>`
+          : "";
+        return `<div class="nutri-line"><span>${row[0]}</span><span>${esc(fmtNutrient(row[1], row[3]))}${row[1] == null ? "" : esc(unit)}</span>${second}</div>`;
+      })
+      .join("");
+  }
+  function explainBlock(grade) {
+    const nut = grade.nutrient == null ? "—" : String(Math.round(grade.nutrient));
+    const blend = grade.noEnergy
+      ? "The letter follows the clean score because there are no calories to compare."
+      : grade.nutrient == null
+        ? "Not enough published nutrients for a nutrient score, so the letter follows the clean score."
+        : grade.limited
+          ? "Limited nutrient data, so this letter is 40% nutrient score and 60% clean score."
+          : "This letter is half the nutrient score and half the clean score.";
+    const lines = (grade.reasons || []).concat(grade.cleanReasons || []);
+    return `<div class="grade-explain" data-testid="grade-explain">
+      <div class="grade-head">
+        <span class="grade-pill ${gradeBand(grade.letter)}">${esc(grade.letter)}</span>
+        <div>
+          <strong>Nutrient ${esc(nut)} · Clean ${Math.round(grade.clean)}</strong>
+          <p class="hint">${esc(blend)}</p>
+        </div>
+      </div>
+      <ul>${lines.map((line) => `<li>${esc(line)}</li>`).join("")}</ul>
+    </div>`;
+  }
+  function scaleBasis(basis, grams) {
+    if (!(grams > 0)) return null;
+    const out = {};
+    Object.keys(basis).forEach((key) => {
+      out[key] = basis[key] == null ? null : (Number(basis[key]) * grams) / 100;
+    });
+    return out;
+  }
+  function basisFromCached(food) {
+    const nut = food.nut || {};
+    return {
+      kcal: food.kcal100,
+      pro: food.pro100,
+      fat: nut.fat,
+      sat: nut.sat,
+      trans: nut.trans,
+      carb: nut.carb,
+      fiber: nut.fiber,
+      sugar: nut.sugar,
+      added: nut.added,
+      na: nut.na,
+      chol: nut.chol,
+      k: nut.k,
+      ca: nut.ca,
+      fe: nut.fe,
+      vd: nut.vd,
+    };
+  }
+  function foodDetailHtml(model) {
+    if (!model) return "";
+    if (model.log) {
+      const grade = gradeLogFood(model.log);
+      const cached = findCachedFood(model.log.name);
+      let table = "";
+      if (cached && cached.nut) {
+        const per = basisFromCached(cached);
+        const grams = model.log.qty && model.log.qty.grams;
+        table = `<p class="hint">Per 100 g${grams ? " · this log is " + esc(String(model.log.qty.quantityLabel || grams + " g")) : ""}.</p>
+          <div class="nutri-table">${nutrientRows(per, grams ? scaleBasis(per, grams) : null)}</div>
+          <p class="hint">${esc(sourceLabel(cached.nut.src))}${cached.nut.fdc ? " · FDC " + esc(String(cached.nut.fdc)) : ""}. Per 100 g.</p>`;
+      } else if (model.log.manualNutrients || model.log.calories != null) {
+        const manual = model.log.manualNutrients || {};
+        table = `<p class="hint">Numbers you entered for this log. Blank means unknown.</p>
+          <div class="nutri-table">${nutrientRows({
+            kcal: model.log.calories,
+            pro: model.log.protein,
+            fat: manual.fat,
+            sat: manual.sat,
+            fiber: manual.fiber,
+            added: manual.added,
+            na: manual.na,
+          }, null)}</div>`;
+      }
+      return `<div class="food-detail-inner">
+        <h3>${esc(model.log.name)}</h3>
+        ${model.log.organic ? `<p class="hint">Marked organic.</p>` : ""}
+        ${model.log.ingredients ? `<p class="hint">Ingredients: ${esc(model.log.ingredients)}</p>` : ""}
+        ${explainBlock(grade)}
+        ${table}
+      </div>`;
+    }
+    const grade = gradeFoodRecord(model.food, { organic: model.organic, ingredients: model.ingredients });
+    if (model.food.restaurant) {
+      const place = (restaurantsCache || []).find((restaurant) => restaurant.name === model.food.restaurant);
+      return `<div class="food-detail-inner">
+        <h3>${esc(model.food.restaurant)} ${esc(model.food.name)}</h3>
+        <p class="hint">${esc(model.food.serving || "1 serving")}${place ? " · " + esc(place.source) : ""}</p>
+        ${explainBlock(grade)}
+        <div class="nutri-table">${nutrientRows({ kcal: model.food.calories, pro: model.food.protein }, null)}</div>
+        <p class="hint">Calories and protein are the chain’s published serving. Other nutrients were not stored, so they stay blank.</p>
+      </div>`;
+    }
+    const per = basisFromCached(model.food);
+    const portion = defaultPortion(model.food);
+    const scaled = portion.grams ? scaleBasis(per, portion.grams) : null;
+    const nut = model.food.nut;
+    const source = nut
+      ? `${sourceLabel(nut.src)}${nut.fdc ? " · FDC " + nut.fdc : ""}`
+      : "Calories and protein only. Other nutrients were not on file.";
+    return `<div class="food-detail-inner">
+      <h3>${esc(model.food.name)}</h3>
+      <p class="hint">Per 100 g${portion.grams ? " · " + esc(portion.label) : ""}.</p>
+      ${explainBlock(grade)}
+      <div class="nutri-table nutri-head"><span></span><span>100 g</span>${scaled ? "<span>" + esc(portion.label) + "</span>" : ""}</div>
+      <div class="nutri-table">${nutrientRows(per, scaled)}</div>
+      <p class="hint">${esc(source)}. Blank means that nutrient was not published for this record.</p>
+    </div>`;
+  }
+  function showFoodDetail(model) {
+    const html = foodDetailHtml(model);
+    const panel = document.getElementById("food-detail");
+    if (panel) {
+      panel.hidden = false;
+      panel.innerHTML = html;
+      if (panel.scrollIntoView) panel.scrollIntoView({ block: "nearest" });
+      return;
+    }
+    openSheet(`<h3>Food detail</h3>${html}<div class="sheet-actions"><button type="button" class="btn secondary" data-act="close-sheet">Close</button></div>`);
+  }
+
   function renderToday() {
     const date = ui.date;
     const foods = store.foodsOn(date);
@@ -1493,6 +2163,7 @@
         ${ringCard("cal", totals.calories, calorieGoal, "")}
         ${ringCard("pro", totals.protein, proteinGoal, " g")}
       </div>
+      ${dailyGradeCard(foods)}
       ${quickAdds()}
       <div class="section-head">
         <h3>Food log</h3>
@@ -1518,9 +2189,10 @@
                       ? `<div class="meta">${esc(food.qty.quantityLabel)}</div>`
                       : ""
                 }
-                <div class="meta">${fmtNum(food.calories)} cal · ${fmtNum(food.protein, 1)} g protein</div>
+                <div class="meta">${fmtNum(food.calories)} cal · ${fmtNum(food.protein, 1)} g protein${food.organic ? " · Organic" : ""}</div>
               </div>
               <div class="food-actions">
+                ${foodGradeButton(food)}
                 <button type="button" class="icon-btn" data-act="toggle-fav" data-id="${esc(food.id)}"
                   aria-label="${store.isFavorite(food.name) ? "Remove favorite" : "Save favorite"}" title="Favorite">
                   ${store.isFavorite(food.name) ? "★" : "☆"}
@@ -1744,6 +2416,7 @@
         <div class="stat"><div class="k">Avg protein</div><div class="v">${fmtNum(avgPro, 1)} g</div></div>
         <div class="stat"><div class="k">Days hit cal goal</div><div class="v">${hitCal}/${logged.length || 0}</div></div>
         <div class="stat"><div class="k">Days hit protein</div><div class="v">${hitPro}/${logged.length || 0}</div></div>
+        <div class="stat"><div class="k">Avg food grade</div><div class="v" data-testid="history-grade">${esc(historyGradeLetter(logged))}</div></div>
       </div>
       <div class="stack">
         <section class="chart-card">
@@ -1800,6 +2473,10 @@
             <input id="goal-weight" type="number" inputmode="decimal" min="0" step="0.1" placeholder="Optional" value="${s.weightGoal ? esc(fmtLb(s.weightGoal)) : ""}" data-act="goal-weight" />
           </div>
           <p class="hint">Calorie and protein goals drive the rings. A goal weight draws a line on the weight chart. Leave it blank to hide the line.</p>
+        </section>
+        <section class="settings-card" data-testid="grade-help">
+          <h3 style="margin:0 0 8px">How grades work</h3>
+          ${gradeHelpHtml()}
         </section>
         <section class="settings-card">
           <h3 style="margin:0 0 8px">Backup</h3>
@@ -2097,6 +2774,39 @@
     els.main.scrollTop = 0;
   }
 
+  function manualValue(food, key) {
+    if (!food || !food.manualNutrients || food.manualNutrients[key] == null) return "";
+    return food.manualNutrients[key];
+  }
+  function formOrganic() {
+    const box = document.getElementById("food-organic");
+    return !!(box && box.checked);
+  }
+  function formIngredients() {
+    return String((document.getElementById("food-ingredients") || {}).value || "").trim();
+  }
+  function readManualNutrients() {
+    if (ui.foodBase) return null;
+    const map = [
+      ["food-fat", "fat"],
+      ["food-sat", "sat"],
+      ["food-fiber", "fiber"],
+      ["food-added", "added"],
+      ["food-sodium", "na"],
+    ];
+    const out = {};
+    let any = false;
+    map.forEach((pair) => {
+      const el = document.getElementById(pair[0]);
+      if (!el || String(el.value).trim() === "") return;
+      const n = Number(el.value);
+      if (!Number.isFinite(n)) return;
+      out[pair[1]] = n;
+      any = true;
+    });
+    return any ? out : null;
+  }
+
   function openFoodSheet(existing) {
     const isEdit = Boolean(existing);
     ui.sheet = { type: "food", id: existing && existing.id };
@@ -2110,7 +2820,7 @@
           : `<div class="field">
               <label for="food-search">Search foods</label>
               <input id="food-search" placeholder="Chicken, banana, brand name…" autocomplete="off" enterkeyhint="search" />
-              <p class="hint">Common foods are from USDA FoodData Central and show immediately. Restaurant items are official menu servings. Brand names search Open Food Facts when you are online.</p>
+              <p class="hint">Common foods are from USDA FoodData Central, with a color grade. Restaurant items are official menu servings. Brand names search Open Food Facts when you are online.</p>
             </div>
             <div class="field">
               <label for="food-place">Restaurant</label>
@@ -2122,6 +2832,7 @@
             <div id="usda-results" data-testid="usda-results"></div>
             <p id="brand-status" class="hint" data-testid="brand-status"></p>
             <div id="brand-results" data-testid="brand-results"></div>
+            <div id="food-detail" class="food-detail" data-testid="food-detail" hidden></div>
             <div class="barcode-row">
               <div class="field grow">
                 <label for="food-barcode">Barcode</label>
@@ -2150,6 +2861,7 @@
               <select id="food-unit" data-act="food-unit"></select>
             </div>
           </div>
+          <p id="pick-grade" class="hint" data-testid="pick-grade"></p>
           <button type="button" class="btn secondary" data-act="add-to-meal">Add to meal</button>
         </div>
         <div id="meal-builder" data-testid="meal-builder">
@@ -2174,7 +2886,26 @@
             <input id="food-pro" name="protein" type="number" inputmode="decimal" min="0" step="0.1" value="${esc(existing ? existing.protein : "")}" />
           </div>
         </div>
+        <label class="check"><input type="checkbox" id="food-organic" data-act="food-organic" ${existing && existing.organic ? "checked" : ""} /> Organic</label>
+        <div class="field">
+          <label for="food-ingredients">Ingredients (optional)</label>
+          <textarea id="food-ingredients" rows="2" maxlength="400" placeholder="chicken, olive oil, salt">${esc(existing && existing.ingredients ? existing.ingredients : "")}</textarea>
+        </div>
+        <details class="more-nutri">
+          <summary>Extra numbers for a food you type in</summary>
+          <p class="hint">Used only when this entry is not chosen from the database. Leave a box blank if you do not know it. These describe the amount above.</p>
+          <div class="field-row">
+            <div class="field"><label for="food-fat">Fat (g)</label><input id="food-fat" type="number" inputmode="decimal" min="0" step="0.1" value="${esc(manualValue(existing, "fat"))}" /></div>
+            <div class="field"><label for="food-sat">Sat fat (g)</label><input id="food-sat" type="number" inputmode="decimal" min="0" step="0.1" value="${esc(manualValue(existing, "sat"))}" /></div>
+          </div>
+          <div class="field-row">
+            <div class="field"><label for="food-fiber">Fiber (g)</label><input id="food-fiber" type="number" inputmode="decimal" min="0" step="0.1" value="${esc(manualValue(existing, "fiber"))}" /></div>
+            <div class="field"><label for="food-added">Added sugar (g)</label><input id="food-added" type="number" inputmode="decimal" min="0" step="0.1" value="${esc(manualValue(existing, "added"))}" /></div>
+          </div>
+          <div class="field"><label for="food-sodium">Sodium (mg)</label><input id="food-sodium" type="number" inputmode="decimal" min="0" step="1" value="${esc(manualValue(existing, "na"))}" /></div>
+        </details>
         ${isEdit ? "" : `<label class="check"><input type="checkbox" id="food-fav" /> Save as favorite</label>`}
+        <details class="grade-note"><summary>How grades work</summary>${gradeHelpHtml()}</details>
         <div class="sheet-actions">
           <button type="button" class="btn secondary" data-act="close-sheet">Cancel</button>
           <button type="submit" class="btn primary">${isEdit ? "Save" : "Add"}</button>
@@ -2371,6 +3102,9 @@
         protein: src ? src.protein : btn.getAttribute("data-protein"),
         items: src && src.items,
         qty: src && src.qty,
+        organic: src && src.organic,
+        ingredients: src && src.ingredients,
+        manualNutrients: src && src.manualNutrients,
       });
       render();
       toast("Added " + name);
@@ -2378,6 +3112,24 @@
     }
     if (act === "close-sheet") {
       closeSheet();
+      return;
+    }
+    if (act === "grade-help") {
+      openSheet(`<h3>How grades work</h3>${gradeHelpHtml()}<div class="sheet-actions"><button type="button" class="btn secondary" data-act="close-sheet">Close</button></div>`);
+      return;
+    }
+    if (act === "food-info") {
+      const logId = btn.getAttribute("data-log-id");
+      if (logId) {
+        const food = store.foodsOn(ui.date).find((item) => item.id === logId);
+        if (food) showFoodDetail({ log: food });
+        return;
+      }
+      const source = btn.getAttribute("data-source");
+      const index = Number(btn.getAttribute("data-index"));
+      const bucket = source === "restaurant" ? ui.restaurantHits : source === "off" ? ui.offHits : ui.usdaHits;
+      const food = bucket && bucket[index];
+      if (food) showFoodDetail({ food, organic: formOrganic(), ingredients: formIngredients() });
       return;
     }
     if (act === "pick-food") {
@@ -2397,6 +3149,9 @@
       } catch (err) {
         portions = [];
       }
+      const source = btn.getAttribute("data-source");
+      const hitList = source === "off" ? ui.offHits : ui.usdaHits;
+      const picked = (hitList || []).find((item) => item.name === btn.getAttribute("data-name"));
       applyFoodBase({
         name: btn.getAttribute("data-name"),
         kcal100: Number(btn.getAttribute("data-kcal100")),
@@ -2406,6 +3161,8 @@
         protein: Number(btn.getAttribute("data-pro")),
         grams: Number(btn.getAttribute("data-grams")) || 0,
         serving: btn.getAttribute("data-serving") || "",
+        nut: picked && picked.nut,
+        ingredients: picked && picked.ingredients,
       });
       return;
     }
@@ -2614,7 +3371,7 @@
       if (search) scheduleFoodSearch(search.value);
       return;
     }
-    if (act === "food-unit") {
+    if (act === "food-unit" || act === "food-organic") {
       refreshQty();
       return;
     }
@@ -2659,6 +3416,9 @@
           name: form.name.value,
           calories: form.calories.value,
           protein: form.protein.value,
+          organic: formOrganic(),
+          ingredients: formIngredients(),
+          manualNutrients: readManualNutrients() || {},
         });
         toast("Food updated");
       } else if (ui.mealItems && ui.mealItems.length) {
@@ -2677,6 +3437,8 @@
           protein,
           items,
           favorite: fav && fav.checked,
+          organic: formOrganic(),
+          ingredients: formIngredients(),
         });
         toast("Meal added");
       } else {
@@ -2686,12 +3448,16 @@
         }
         const line = currentQty();
         if (line) store.rememberFoodUse(line.name, { amount: line.amount, unit: line.unit });
+        const manual = line ? null : readManualNutrients();
         store.addFood(ui.date, {
           name: form.name.value,
           calories: form.calories.value,
           protein: form.protein.value,
           favorite: fav && fav.checked,
           qty: line,
+          organic: line ? line.organic : formOrganic(),
+          ingredients: line ? line.ingredients : formIngredients(),
+          manualNutrients: manual,
         });
         toast("Food added");
       }
@@ -2788,6 +3554,13 @@
       if (file) importBackupFile(file);
     });
     render();
+    ensureFoods()
+      .then(() => {
+        const sheet = document.getElementById("sheet");
+        if (sheet && !sheet.hidden) return;
+        if (ui.tab === "today" || ui.tab === "history") render();
+      })
+      .catch(() => {});
     ensurePlans().catch(() => {});
     ensureDemos().catch(() => {});
     ensureRestaurants().catch(() => {});
