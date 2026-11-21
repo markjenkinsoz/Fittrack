@@ -407,8 +407,9 @@ test.describe("FitTrack PWA", () => {
     expect(swRes.status()).toBe(200);
     const swText = await swRes.text();
     expect(swText).toContain("./index.html");
-    expect(swText).toContain("fittrack-v5");
-    expect(swText).not.toContain("fittrack-v4");
+    expect(swText).toContain("fittrack-v7");
+    expect(swText).not.toContain("fittrack-v6");
+    expect(swText).not.toContain("fittrack-v5");
     expect(swText).not.toContain('"/index.html"');
     expect(swText).not.toContain("'/index.html'");
 
