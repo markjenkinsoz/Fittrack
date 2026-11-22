@@ -748,6 +748,79 @@ h2.page-title {
 .demo figcaption { display: flex; flex-direction: column; gap: 4px; font-size: 0.85rem; }
 .demo-link { color: var(--cal); font-weight: 700; }
 .food-hit .meta { color: var(--muted); font-size: 0.78rem; }
+.hit-row { display: flex; gap: 8px; align-items: stretch; margin-bottom: 6px; }
+.hit-row .food-hit { flex: 1; margin: 0; }
+.hit-top { display: flex; justify-content: space-between; gap: 8px; align-items: flex-start; }
+.grade-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 36px;
+  height: 28px;
+  padding: 0 8px;
+  border-radius: 999px;
+  font-weight: 800;
+  font-size: 0.8rem;
+  line-height: 1;
+}
+.info-btn {
+  width: 68px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: var(--card);
+  font-size: 0.75rem;
+  font-weight: 750;
+}
+.g-a { background: #1f8a4c; color: #fff; }
+.g-b { background: #4e9a32; color: #fff; }
+.g-c { background: #e0b000; color: #1c1402; }
+.g-d { background: #d36a1e; color: #fff; }
+.g-f { background: #c44747; color: #fff; }
+.g-n { background: var(--card-2); color: var(--muted); }
+.grade-today {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 12px;
+  margin: 8px 0 4px;
+}
+.grade-today .grade-pill { min-width: 56px; height: 56px; font-size: 1.15rem; }
+.grade-today .k { color: var(--muted); font-size: 0.75rem; font-weight: 700; }
+.grade-today .v { font-weight: 700; }
+.text-btn { color: var(--cal); font-weight: 700; font-size: 0.85rem; min-height: 32px; }
+.food-detail, .food-detail-inner {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 12px;
+  margin: 8px 0;
+}
+.grade-head { display: flex; gap: 10px; align-items: center; margin-bottom: 8px; }
+.grade-explain ul { margin: 0; padding-left: 18px; }
+.grade-explain li { margin: 4px 0; font-size: 0.88rem; }
+.nutri-head, .nutri-line {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 4px 0;
+  border-bottom: 1px solid var(--line);
+  font-size: 0.86rem;
+}
+.nutri-head { color: var(--muted); font-size: 0.72rem; font-weight: 750; }
+.nutri-line span:first-child, .nutri-head span:first-child { flex: 1; }
+.more-nutri, .grade-note { margin: 8px 0; }
+.more-nutri summary, .grade-note summary { font-weight: 700; margin-bottom: 8px; }
+textarea {
+  width: 100%;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: var(--card);
+  padding: 10px 12px;
+  resize: vertical;
+}
 .barcode-row {
   display: flex;
   gap: 8px;
