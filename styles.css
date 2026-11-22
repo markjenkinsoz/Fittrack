@@ -739,11 +739,65 @@ h2.page-title {
   display: block;
   margin: 8px 0 4px;
 }
+.demo-shot {
+  display: block;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #e8edf2;
+  overflow: hidden;
+}
+.demo picture { display: block; }
 .demo img {
   width: 100%;
   height: auto;
-  border-radius: 12px;
-  background: transparent;
+  aspect-ratio: 1 / 1;
+  object-fit: contain;
+  background: #e8edf2;
+  display: block;
+}
+.frame-nav {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+}
+.frame-meta { flex: 1; text-align: center; min-width: 0; }
+.frame-count {
+  display: block;
+  font-size: 0.92rem;
+  font-weight: 750;
+}
+.frame-dots {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 6px;
+}
+.frame-dot {
+  width: 8px;
+  height: 8px;
+  min-width: 8px;
+  padding: 0;
+  border: 0;
+  border-radius: 99px;
+  background: var(--line);
+  position: relative;
+}
+.frame-dot::after {
+  content: "";
+  position: absolute;
+  inset: -14px;
+}
+.frame-dot.on {
+  width: 18px;
+  background: var(--wo);
+}
+.frame-cue {
+  margin: 8px 0 4px;
+  font-size: 0.95rem;
 }
 .demo figcaption { display: flex; flex-direction: column; gap: 4px; font-size: 0.85rem; }
 .demo-link { color: var(--cal); font-weight: 700; }

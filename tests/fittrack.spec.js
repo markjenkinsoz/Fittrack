@@ -407,7 +407,9 @@ test.describe("FitTrack PWA", () => {
     expect(swRes.status()).toBe(200);
     const swText = await swRes.text();
     expect(swText).toContain("./index.html");
-    expect(swText).toContain("fittrack-v6");
+    expect(swText).toContain("fittrack-v8");
+    expect(swText).not.toContain("fittrack-v7");
+    expect(swText).not.toContain("fittrack-v6");
     expect(swText).not.toContain("fittrack-v5");
     expect(swText).not.toContain('"/index.html"');
     expect(swText).not.toContain("'/index.html'");
@@ -446,6 +448,9 @@ test.describe("FitTrack PWA", () => {
         "/Fittrack/data/exercise-demos.json",
         "/Fittrack/data/plans.json",
         "/Fittrack/vendor/zxing.min.js",
+        "/Fittrack/images/exercises/air-squat-1.webp",
+        "/Fittrack/images/exercises/air-squat-1.jpg",
+        "/Fittrack/images/exercises/halo-1.webp",
       ])
     );
 
@@ -955,15 +960,28 @@ test.describe("FitTrack PWA", () => {
     await page.getByRole("button", { name: "Level 1" }).click();
     await page.getByRole("button", { name: "Open Strength A" }).click();
     const squat = page.locator(".plan-ex", { hasText: "Squat to a bench" });
-    await expect(squat.locator("img")).toHaveAttribute("src", /images\/exercises\/air-squat\.svg/);
+    await expect(squat.locator("img")).toHaveAttribute("src", /images\/exercises\/air-squat-1\.jpg/);
+    await expect(squat.locator("source")).toHaveAttribute("type", "image/webp");
+    await expect(squat.locator("source")).toHaveAttribute("srcset", /air-squat-1\.webp/);
     await expect(squat.locator("img")).toHaveAttribute("loading", "lazy");
+    await expect(squat.locator(".frame-count")).toHaveText("Step 1 of 3");
+    await expect(squat.locator(".frame-cue")).toContainText("Stand tall");
+    await squat.locator(".frame-nav").getByRole("button", { name: "Next step" }).click();
+    await expect(squat.locator(".frame-count")).toHaveText("Step 2 of 3");
+    await expect(squat.locator("img")).toHaveAttribute("src", /images\/exercises\/air-squat-2\.jpg/);
+    await expect(squat.locator("source")).toHaveAttribute("srcset", /air-squat-2\.webp/);
+    await squat.locator(".frame-dot").nth(2).click();
+    await expect(squat.locator(".frame-count")).toHaveText("Step 3 of 3");
     await expect(squat.getByRole("link", { name: "Watch demo" })).toHaveAttribute("href", /youtube\.com\/watch\?v=sOUCmU27mjE/);
     const halo = page.locator("body");
     await page.getByRole("button", { name: "Back to plans" }).click();
     await page.getByRole("button", { name: "Open Kettlebell circuit" }).click();
     await expect(page.locator(".plan-ex", { hasText: "Kettlebell halo, very light" }).locator("img")).toHaveAttribute(
       "src",
-      /halo\.svg/
+      /halo-1\.jpg/
+    );
+    await expect(page.locator(".plan-ex", { hasText: "Kettlebell halo, very light" }).locator(".frame-count")).toHaveText(
+      "Step 1 of 3"
     );
     expect(halo).toBeTruthy();
 
