@@ -442,10 +442,15 @@ test.describe("FitTrack PWA", () => {
         "/Fittrack/icons/icon-192-maskable.png",
         "/Fittrack/icons/icon-512-maskable.png",
         "/Fittrack/data/foods/index.json",
+        "/Fittrack/data/foods/common.json",
+        "/Fittrack/data/nutrition.json",
         "/Fittrack/data/restaurants.json",
         "/Fittrack/data/exercise-demos.json",
         "/Fittrack/data/plans.json",
         "/Fittrack/vendor/zxing.min.js",
+        "/Fittrack/images/exercises/air-squat-1.webp",
+        "/Fittrack/images/exercises/air-squat-1.jpg",
+        "/Fittrack/images/exercises/halo-1.webp",
       ])
     );
 
@@ -537,6 +542,89 @@ test.describe("FitTrack PWA", () => {
     await expect(page.locator("#food-name")).toHaveValue("Clif Protein Bar");
     await expect(page.locator("#food-cal")).toHaveValue("250");
     await page.getByRole("button", { name: "Cancel" }).click();
+
+    expect(errors, `JS errors: ${errors.join("\n")}`).toEqual([]);
+  });
+
+  test("shows nutrition grades without dropping an existing log", async ({ page, context }) => {
+    const errors = [];
+    page.on("pageerror", (err) => errors.push(String(err)));
+    page.on("console", (msg) => {
+      if (msg.type() === "error") errors.push(msg.text());
+    });
+    await page.route("**/world.openfoodfacts.org/**", async (route) => {
+      await route.fulfill({ contentType: "application/json", body: JSON.stringify({ products: [] }) });
+    });
+    const today = dateKey();
+    await context.addInitScript((payload) => {
+      localStorage.setItem("fittrack-v1", JSON.stringify(payload));
+    }, {
+      version: 1,
+      settings: { calorieGoal: 2200, proteinGoal: 160 },
+      days: { [today]: { foods: [{ id: "keep-oatmeal", name: "Oatmeal", calories: 300, protein: 12, createdAt: 1 }] } },
+      favorites: [],
+      recents: [],
+      exerciseNames: [],
+      workouts: [],
+    });
+
+    const foods = await page.request.get("/Fittrack/data/foods/index.json");
+    const index = await foods.json();
+    expect(index.count).toBeGreaterThan(12000);
+    expect(index.shards).toContain("common");
+    const common = await page.request.get("/Fittrack/data/foods/common.json");
+    const commonBody = await common.json();
+    expect(commonBody.f.length).toBeGreaterThan(300);
+    const nutrition = await page.request.get("/Fittrack/data/nutrition.json");
+    const nutritionBody = await nutrition.json();
+    expect(nutritionBody.sources.sr).toMatch(/SR Legacy/);
+    expect(nutritionBody.sources.fd).toMatch(/Foundation/);
+    const banana = nutritionBody.foods["Bananas, raw"];
+    expect(banana[0]).toBe("sr");
+    expect(banana[5]).toBeCloseTo(0.33, 2);
+    expect(banana[14]).toBeCloseTo(358, 0);
+
+    await page.goto("/Fittrack/");
+    await expect(page.getByTestId("food-list")).toContainText("Oatmeal");
+    await expect(page.getByTestId("food-list")).toContainText("300 cal");
+    await expect(page.getByTestId("daily-grade")).toBeVisible();
+
+    await page.getByRole("button", { name: "+ Add food" }).click();
+    await page.locator("#food-search").fill("chicken breast roasted");
+    const hit = page.getByTestId("usda-results").getByRole("button").first();
+    await expect(hit).toContainText("Chicken breast, roasted");
+    await expect(hit.getByTestId("grade-pill")).toHaveText(/A|B/);
+    await page.getByTestId("usda-results").getByRole("button", { name: "Details" }).first().click();
+    const detail = page.getByTestId("food-detail");
+    await expect(detail).toContainText("Potassium");
+    await expect(detail).toContainText("USDA");
+    await expect(detail.getByTestId("grade-explain")).toBeVisible();
+    await expect(detail.getByTestId("grade-explain")).toContainText(/Nutrient/);
+    await expect(detail.getByTestId("grade-explain")).toContainText(/Clean/);
+    fs.mkdirSync(SCREEN_DIR, { recursive: true });
+    await page.screenshot({ path: path.join(SCREEN_DIR, "04-search-grades.png"), fullPage: false });
+    await detail.locator(".grade-head").scrollIntoViewIfNeeded();
+    await page.screenshot({ path: path.join(SCREEN_DIR, "05-food-detail.png"), fullPage: false });
+
+    await hit.click();
+    await page.locator("#food-organic").check();
+    await page.getByRole("button", { name: "Add", exact: true }).click();
+    await expect(page.getByTestId("food-list")).toContainText("Chicken breast, roasted");
+    await expect(page.getByTestId("food-list")).toContainText("Organic");
+    await expect(page.getByTestId("food-list")).toContainText("Oatmeal");
+    await expect(page.getByTestId("daily-grade").locator(".grade-pill")).toHaveText(/[A-F]/);
+    await page.screenshot({ path: path.join(SCREEN_DIR, "06-daily-grade.png"), fullPage: false });
+
+    await page.getByRole("button", { name: "+ Add food" }).click();
+    await page.locator("#food-name").fill("Kitchen oats");
+    await page.locator("#food-cal").fill("150");
+    await page.locator("#food-pro").fill("5");
+    await page.locator("#food-ingredients").fill("oats, milk");
+    await page.getByRole("button", { name: "Add", exact: true }).click();
+    await expect(page.getByTestId("food-list")).toContainText("Kitchen oats");
+    await page.getByRole("button", { name: /Grade .+ for Kitchen oats/ }).click();
+    await expect(page.getByRole("dialog")).toContainText("oats, milk");
+    await expect(page.getByTestId("grade-explain")).toContainText(/Nutrient|Clean/);
 
     expect(errors, `JS errors: ${errors.join("\n")}`).toEqual([]);
   });

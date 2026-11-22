@@ -15,11 +15,38 @@ A personal iPhone Home Screen web app for daily calories, protein, and workouts.
 
 ## Food data
 
-Common foods load when you search, not on first paint. They are sharded under `data/foods/` and derived from public-domain [USDA FoodData Central](https://fdc.nal.usda.gov/) releases: SR Legacy (April 2018), Foundation Foods (December 2025), and a broad set of FNDDS survey foods for 2021–2023 (prepared dishes such as scrambled eggs). Each food stores calories and protein per 100 g plus household portions (1 egg, 1 cup, 1 slice) when USDA published them. Regenerate it with:
+Common foods load when you search, not on first paint. They are sharded under `data/foods/` and derived from public-domain [USDA FoodData Central](https://fdc.nal.usda.gov/) releases: SR Legacy (April 2018), Foundation Foods (December 2025), and a broad set of FNDDS survey foods for 2021–2023 (prepared dishes such as scrambled eggs). Each food stores calories and protein per 100 g plus household portions (1 egg, 1 cup, 1 slice) when USDA published them. `data/foods/common.json` adds several hundred everyday names (chicken breast, Greek yogurt, olive oil, and so on) that point at those same USDA records. Regenerate the long list with:
 
 ```bash
 python3 tools/generate_foods.py
+python3 tools/build_nutrition.py
 ```
+
+`data/nutrition.json` holds the rest of the published per-100 g record when USDA printed it: total fat, saturated fat, trans fat, carbohydrate, fiber, total sugar, added sugar, sodium, cholesterol, potassium, calcium, iron, and vitamin D. A blank in the app means that field was not in the record. Numbers are not estimated. Foundation Foods is preferred for an everyday name when that record is the one cited. If an older search row already uses a different calorie value for the same USDA name, that row keeps its calories and protein, and the extra nutrients are attached only when the calorie values agree within 2 kcal.
+
+## Food grades
+
+Every food gets a letter from F through A+. The letter is half nutrient density and half a clean-food score. It is a guide, not a clinical rating.
+
+Nutrient density uses the published numbers per calorie:
+
+- Protein and fiber raise the score. Fiber is skipped when the food has almost no carbohydrate, so plain meat and oils are not punished for having no fiber.
+- Saturated fat, sodium, added sugar, and trans fat lower the score.
+- Potassium, calcium, iron, and vitamin D can raise it a little when they are high for the calories. The comparison uses 10% of these Daily Values per 100 kcal as a full bump: potassium 340 mg, calcium 130 mg, iron 1.8 mg, vitamin D 2 mcg.
+- Missing values are skipped. They are not treated as zero. Cholesterol is shown and not scored. Total sugar is shown and not scored, so fruit and plain milk are not penalized for natural sugar. Only published added sugar is scored.
+
+The clean score starts from a processing group in the spirit of NOVA:
+
+| Group | Examples | Starts at |
+| --- | --- | --- |
+| Whole or minimally processed | Fruit, vegetables, eggs, plain meat, fish, milk, cooked grains | 90 |
+| Culinary ingredient | Oil, butter, sugar, honey, flour | 72 |
+| Processed | Cheese, bread, canned beans, cured meat | 56 |
+| Ultra-processed | Soda, chips, candy, fast food, most restaurant dishes | 30 |
+
+Everyday foods in `data/foods/common.json` have a group chosen for that food. The long USDA list uses a name rule, and the explanation says so. A single food, or an ingredient list of three items or fewer with no additives, adds 6 points. Eight or more ingredients subtracts 8. Additives (hydrogenated oils, high-fructose corn syrup, artificial sweeteners and colors, and similar) subtract up to 18. Marking a food or a log **organic** adds 8 points to the clean score only. USDA foods are not assumed to be organic.
+
+Letters: 97 A+, 93 A, 90 A-, 87 B+, 83 B, 80 B-, 77 C+, 73 C, 70 C-, 67 D+, 63 D, 60 D-, below 60 F. When fewer than three nutrient parts are available, the letter is 40% nutrient and 60% clean. Otherwise the two scores count equally. A day or a meal is the calorie-weighted average. Foods under 20 calories still count a little so black coffee is not invisible. The same note is in the app under Settings → How grades work.
 
 After you pick a food you can measure it in that household portion, grams, ounces, or cups and fluid ounces when a volume portion exists. The last amount and unit are remembered for that food. Several foods can be added to one named meal, with each line and the combined calories and protein, and saved as a favorite for one tap later.
 
