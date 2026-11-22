@@ -378,7 +378,7 @@ test.describe("FitTrack PWA", () => {
     const scriptSrc = await page.locator("script[src]").getAttribute("src");
     const iconSrc = await page.locator("img.brand-icon").getAttribute("src");
     expect(manifestHref).toBe("manifest.json");
-    expect(scriptSrc).toBe("app.js");
+    expect(scriptSrc).toBe("app.js?v=9");
     expect(iconSrc).toBe("icons/icon-192.png");
 
     const pageUrl = page.url();
@@ -407,7 +407,11 @@ test.describe("FitTrack PWA", () => {
     expect(swRes.status()).toBe(200);
     const swText = await swRes.text();
     expect(swText).toContain("./index.html");
-    expect(swText).toContain("fittrack-v8");
+    expect(swText).toContain("fittrack-v9");
+    expect(swText).toContain('cache: "no-store"');
+    expect(swText).toContain("self.skipWaiting()");
+    expect(swText).toContain("self.clients.claim()");
+    expect(swText).not.toContain("fittrack-v8");
     expect(swText).not.toContain("fittrack-v7");
     expect(swText).not.toContain("fittrack-v6");
     expect(swText).not.toContain("fittrack-v5");
@@ -454,7 +458,34 @@ test.describe("FitTrack PWA", () => {
       ])
     );
 
+    const appText = await (await page.request.get(new URL("./app.js", pageUrl).href)).text();
+    expect(appText).toContain('updateViaCache: "none"');
+    expect(appText).toContain("registration.update()");
+    expect(appText).toContain("controllerchange");
+
     expect(errors, `JS errors: ${errors.join("\n")}`).toEqual([]);
+  });
+
+  test("an upgrade deletes the previous service-worker cache", async ({ page }) => {
+    await page.goto("/Fittrack/");
+    await page.evaluate(() => navigator.serviceWorker.ready);
+    await page.evaluate(async () => {
+      const cache = await caches.open("fittrack-v6");
+      await cache.put(new Request(new URL("./stale-app.js", location.href).href), new Response("old app"));
+      const names = await caches.keys();
+      if (!names.includes("fittrack-v6")) throw new Error("old cache was not created");
+    });
+    await page.reload();
+    await page.evaluate(() => navigator.serviceWorker.ready);
+    await page.waitForFunction(async () => {
+      const names = await caches.keys();
+      return names.includes("fittrack-v9") && !names.includes("fittrack-v6");
+    });
+    const names = await page.evaluate(() => caches.keys());
+    expect(names).toContain("fittrack-v9");
+    expect(names).not.toContain("fittrack-v6");
+    const script = await page.evaluate(() => navigator.serviceWorker.controller && navigator.serviceWorker.controller.scriptURL);
+    expect(script).toMatch(/\/Fittrack\/sw\.js$/);
   });
 
   test("searches USDA foods and mocked Open Food Facts brands", async ({ page }) => {

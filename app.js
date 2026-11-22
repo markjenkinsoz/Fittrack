@@ -1153,7 +1153,7 @@
         <button type="button" class="demo-shot" data-act="frame-next" aria-label="Next step">
           <picture>
             <source srcset="${esc(webp)}" type="image/webp" />
-            <img src="${esc(frame.image)}" alt="${esc(demo.title)}. Step 1 of ${total}. ${esc(frame.cue)}" width="720" height="720" loading="lazy" decoding="async" />
+            <img src="${esc(frame.image)}" alt="${esc(demo.title)}. Step 1 of ${total}. ${esc(frame.cue)}" width="720" height="720" loading="lazy" decoding="async" data-fallback-src="${esc("images/exercises/" + demoId + "-1.jpg")}" onerror="if(this.dataset.fallbackUsed)return;this.dataset.fallbackUsed='1';var pic=this.parentElement;var source=pic&&pic.querySelector('source');if(source)source.removeAttribute('srcset');if(this.dataset.fallbackSrc)this.src=this.dataset.fallbackSrc;" />
           </picture>
         </button>
       </div>
@@ -1183,6 +1183,7 @@
     const img = fig.querySelector("img");
     const source = fig.querySelector("source");
     if (img) {
+      img.dataset.fallbackUsed = "";
       img.src = frame.image;
       img.alt = `${demo.title}. Step ${index + 1} of ${total}. ${frame.cue}`;
     }
@@ -3659,9 +3660,31 @@
     if ("serviceWorker" in navigator) {
       // Relative script and scope follow the page, so /Fittrack/ on GitHub Pages
       // registers https://…/Fittrack/sw.js with scope https://…/Fittrack/.
-      navigator.serviceWorker.register("./sw.js", { scope: "./" }).catch((err) => {
-        console.warn("FitTrack: service worker did not register", err);
+      // updateViaCache: "none" keeps iOS from reusing a cached sw.js. Reload once
+      // when a new worker takes over a page that already had one.
+      let hadController = !!navigator.serviceWorker.controller;
+      let reloading = false;
+      navigator.serviceWorker.addEventListener("controllerchange", () => {
+        if (!hadController) {
+          hadController = true;
+          return;
+        }
+        if (reloading) return;
+        reloading = true;
+        window.location.reload();
       });
+      navigator.serviceWorker
+        .register("./sw.js", { scope: "./", updateViaCache: "none" })
+        .then((registration) => {
+          const refresh = () => registration.update().catch(() => {});
+          refresh();
+          document.addEventListener("visibilitychange", () => {
+            if (document.visibilityState === "visible") refresh();
+          });
+        })
+        .catch((err) => {
+          console.warn("FitTrack: service worker did not register", err);
+        });
     }
   }
 
