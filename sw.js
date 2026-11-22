@@ -1,7 +1,7 @@
 /* FitTrack service worker — network first, cache fallback for offline use.
    Asset URLs are relative to this script (the app directory), not the domain root,
    so the same list works at /Fittrack/ on GitHub Pages. */
-const CACHE = "fittrack-v8";
+const CACHE = "fittrack-v9";
 const ASSETS = [
   "./",
   "./index.html",
@@ -182,19 +182,37 @@ const ASSETS = [
   "./images/exercises/thoracic-3.webp",
 ];
 
+const SHELL = ASSETS.filter((url) => !url.includes("/images/"));
+const PHOTOS = ASSETS.filter((url) => url.includes("/images/"));
+
+function wantsFreshBytes(url, request) {
+  if (request.mode === "navigate") return true;
+  return /\.(?:html|js|css|json)$/i.test(url.pathname);
+}
+
+function dropOldCaches() {
+  return caches
+    .keys()
+    .then((keys) => Promise.all(keys.filter((key) => key !== CACHE).map((key) => caches.delete(key))));
+}
+
+let sweptOldCaches = false;
+
 self.addEventListener("install", (event) => {
   event.waitUntil(
-    caches.open(CACHE).then((cache) => cache.addAll(ASSETS)).then(() => self.skipWaiting())
+    caches
+      .open(CACHE)
+      .then((cache) =>
+        cache.addAll(SHELL).then(() =>
+          Promise.all(PHOTOS.map((url) => cache.add(url).catch(() => undefined)))
+        )
+      )
+      .then(() => self.skipWaiting())
   );
 });
 
 self.addEventListener("activate", (event) => {
-  event.waitUntil(
-    caches
-      .keys()
-      .then((keys) => Promise.all(keys.filter((key) => key !== CACHE).map((key) => caches.delete(key))))
-      .then(() => self.clients.claim())
-  );
+  event.waitUntil(dropOldCaches().then(() => self.clients.claim()));
 });
 
 self.addEventListener("fetch", (event) => {
@@ -203,15 +221,29 @@ self.addEventListener("fetch", (event) => {
   const url = new URL(request.url);
   if (url.origin !== self.location.origin) return;
 
+  if (request.mode === "navigate" || !sweptOldCaches) {
+    sweptOldCaches = true;
+    event.waitUntil(dropOldCaches());
+  }
+
+  const fresh = wantsFreshBytes(url, request);
+  const pulled = fresh
+    ? fetch(request, { cache: "no-store" }).catch(() => fetch(request))
+    : fetch(request);
   event.respondWith(
-    fetch(request)
+    pulled
       .then((response) => {
-        const copy = response.clone();
-        caches.open(CACHE).then((cache) => cache.put(request, copy));
+        if (response && response.ok) {
+          const copy = response.clone();
+          caches.open(CACHE).then((cache) => cache.put(request, copy)).catch(() => undefined);
+        }
         return response;
       })
       .catch(() =>
-        caches.match(request).then((cached) => cached || caches.match("./index.html"))
+        caches.match(request).then((cached) => {
+          if (cached) return cached;
+          return caches.match(request, { ignoreSearch: true }).then((loose) => loose || caches.match("./index.html"));
+        })
       )
   );
 });
