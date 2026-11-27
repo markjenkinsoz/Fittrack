@@ -298,6 +298,7 @@ test.describe("FitTrack PWA", () => {
     await download.saveAs(tmp);
     const exported = JSON.parse(fs.readFileSync(tmp, "utf8"));
     expect(exported.settings.calorieGoal).toBe(2000);
+    expect(exported.settings.lastBackupAt).toBeGreaterThan(0);
     expect(exported.settings.proteinGoal).toBe(150);
     expect(exported.workouts.length).toBeGreaterThanOrEqual(2);
     const todayFoods = (exported.days[dateKey()] || { foods: [] }).foods;
@@ -378,7 +379,7 @@ test.describe("FitTrack PWA", () => {
     const scriptSrc = await page.locator("script[src]").getAttribute("src");
     const iconSrc = await page.locator("img.brand-icon").getAttribute("src");
     expect(manifestHref).toBe("manifest.json");
-    expect(scriptSrc).toBe("app.js?v=9");
+    expect(scriptSrc).toBe("app.js?v=10");
     expect(iconSrc).toBe("icons/icon-192.png");
 
     const pageUrl = page.url();
@@ -407,10 +408,11 @@ test.describe("FitTrack PWA", () => {
     expect(swRes.status()).toBe(200);
     const swText = await swRes.text();
     expect(swText).toContain("./index.html");
-    expect(swText).toContain("fittrack-v9");
+    expect(swText).toContain("fittrack-v10");
     expect(swText).toContain('cache: "no-store"');
     expect(swText).toContain("self.skipWaiting()");
     expect(swText).toContain("self.clients.claim()");
+    expect(swText).not.toContain("fittrack-v9");
     expect(swText).not.toContain("fittrack-v8");
     expect(swText).not.toContain("fittrack-v7");
     expect(swText).not.toContain("fittrack-v6");
@@ -479,10 +481,10 @@ test.describe("FitTrack PWA", () => {
     await page.evaluate(() => navigator.serviceWorker.ready);
     await page.waitForFunction(async () => {
       const names = await caches.keys();
-      return names.includes("fittrack-v9") && !names.includes("fittrack-v6");
+      return names.includes("fittrack-v10") && !names.includes("fittrack-v6");
     });
     const names = await page.evaluate(() => caches.keys());
-    expect(names).toContain("fittrack-v9");
+    expect(names).toContain("fittrack-v10");
     expect(names).not.toContain("fittrack-v6");
     const script = await page.evaluate(() => navigator.serviceWorker.controller && navigator.serviceWorker.controller.scriptURL);
     expect(script).toMatch(/\/Fittrack\/sw\.js$/);
@@ -779,7 +781,9 @@ test.describe("FitTrack PWA", () => {
     await expect(page.getByTestId("weight-ma")).toBeVisible();
     await expect(page.getByTestId("weight-list").locator(".food-row")).toHaveCount(4);
 
-    await page.getByRole("button", { name: "Log weight" }).click();
+    const entryBox = await page.getByTestId("weight-entry").boundingBox();
+    const chartBox = await page.getByTestId("weight-chart").boundingBox();
+    expect(entryBox.y).toBeLessThan(chartBox.y);
     await page.locator("#weight-lb").fill("181.2");
     await page.locator("#weight-note").fill("evening");
     await page.getByRole("button", { name: "Save weight" }).click();
@@ -863,7 +867,7 @@ test.describe("FitTrack PWA", () => {
     await page.getByRole("button", { name: "Home plans" }).click();
     await expect(page.getByTestId("level-up")).toContainText("Level 2");
     await page.getByRole("button", { name: "Move to Level 2" }).click();
-    await expect(page.getByRole("button", { name: "Level 2" })).toHaveAttribute("aria-pressed", "true");
+    await expect(page.getByRole("button", { name: "Level 2", exact: true })).toHaveAttribute("aria-pressed", "true");
 
     await page.getByRole("button", { name: "Level 5" }).click();
     await page.getByRole("button", { name: "Open Strength A" }).click();
@@ -1017,5 +1021,80 @@ test.describe("FitTrack PWA", () => {
     expect(halo).toBeTruthy();
 
     expect(errors, `JS errors: ${errors.join("\n")}`).toEqual([]);
+  });
+
+  test("grades a restaurant item from the published panel and explains why", async ({ page }) => {
+    await page.goto("/Fittrack/");
+    await page.getByRole("button", { name: "+ Add food" }).click();
+    await page.locator("#food-search").fill("butterburger single");
+    const row = page.getByTestId("restaurant-results").locator(".hit-row").filter({
+      has: page.getByRole("button", { name: /^Culver's ButterBurger, Single/ }),
+    });
+    await expect(row.getByTestId("grade-pill")).toBeVisible();
+    await row.getByRole("button", { name: "Details" }).click();
+    const detail = page.getByTestId("restaurant-detail");
+    await expect(detail).toContainText("17");
+    await expect(detail).toContainText("Total fat");
+    await expect(detail.getByTestId("grade-explain")).toContainText("ultra-processed");
+    await expect(detail.getByTestId("grade-explain")).toContainText("Saturated fat");
+  });
+
+  test("steps through the kettlebell swing on the level 2 plan", async ({ page }) => {
+    await page.goto("/Fittrack/");
+    await page.getByRole("tab", { name: "Workouts" }).click();
+    await page.getByRole("button", { name: "Home plans" }).click();
+    await page.getByRole("button", { name: "Level 2", exact: true }).click();
+    await page.getByRole("button", { name: "Open Level 2 strength" }).click();
+    const swing = page.locator(".plan-ex", { hasText: "Kettlebell swing" });
+    await expect(swing.locator(".frame-count")).toHaveText("Step 1 of 4");
+    await expect(swing.locator(".frame-cue")).toContainText("Hike the bell");
+    await expect(swing.locator("img")).toHaveAttribute("loading", "lazy");
+    await expect(swing.locator("source")).toHaveAttribute("srcset", /kb-swing-1\.webp/);
+    await swing.locator(".frame-nav").getByRole("button", { name: "Next step" }).click();
+    await expect(swing.locator(".frame-count")).toHaveText("Step 2 of 4");
+    await expect(swing.locator("img")).toHaveAttribute("src", /kb-swing-2\.jpg/);
+    await swing.locator(".frame-dot").nth(3).click();
+    await expect(swing.locator(".frame-count")).toHaveText("Step 4 of 4");
+    await expect(page.locator(".plan-ex", { hasText: "Dumbbell step-up" }).locator(".frame-count")).toHaveText("Step 1 of 3");
+    await expect(page.locator(".plan-ex", { hasText: "Seated dumbbell raise" }).locator(".frame-count")).toHaveText("Step 1 of 3");
+    await expect(page.locator(".plan-ex", { hasText: "Single-arm dumbbell bench press" }).locator(".frame-count")).toHaveText(
+      "Step 1 of 3"
+    );
+  });
+
+  test("scores a packaged food from its ingredient list", async ({ page }) => {
+    await page.goto("/Fittrack/");
+    await page.getByRole("button", { name: "+ Add food" }).click();
+    await page.locator("#food-name").fill("Packaged bar");
+    await page.locator("#food-cal").fill("200");
+    await page.locator("#food-pro").fill("5");
+    await page.locator("#food-ingredients").fill("oats, sugar, soybean oil, sucralose, red 40, natural flavor, salt, soy lecithin");
+    await page.getByRole("button", { name: "Add", exact: true }).click();
+    await page.getByRole("button", { name: /Grade .+ for Packaged bar/ }).click();
+    const explain = page.getByTestId("grade-explain");
+    await expect(explain).toContainText("seed oil");
+    await expect(explain).toContainText("additives");
+    await expect(explain).toContainText("added sugars");
+    await expect(explain).toContainText("Ingredient list has");
+  });
+
+  test("shows the backup reminder and round-trips a file", async ({ page }) => {
+    await page.goto("/Fittrack/");
+    await page.getByRole("tab", { name: "Settings" }).click();
+    await expect(page.getByTestId("backup-status")).toContainText("Last backup: never");
+    const downloadPromise = page.waitForEvent("download");
+    await page.getByRole("button", { name: "Export backup" }).click();
+    const download = await downloadPromise;
+    await expect(page.getByTestId("backup-status")).toContainText("Last backup:");
+    await expect(page.getByTestId("backup-status")).not.toContainText("never");
+    const tmp = path.join(SCREEN_DIR, "..", "test-results", "backup-round.json");
+    await download.saveAs(tmp);
+    const exported = JSON.parse(fs.readFileSync(tmp, "utf8"));
+    exported.settings.calorieGoal = 1999;
+    const importPath = path.join(SCREEN_DIR, "..", "test-results", "backup-round-in.json");
+    fs.writeFileSync(importPath, JSON.stringify(exported));
+    page.once("dialog", (dialog) => dialog.accept());
+    await page.locator("#import-file").setInputFiles(importPath);
+    await expect(page.locator("#goal-cal")).toHaveValue("1999");
   });
 });

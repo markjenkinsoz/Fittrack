@@ -74,7 +74,7 @@
   function emptyData() {
     return {
       version: APP_VERSION,
-      settings: { calorieGoal: 2200, proteinGoal: 160, weightGoal: null, planLevel: 1, levelSnoozeAt: 0 },
+      settings: { calorieGoal: 2200, proteinGoal: 160, weightGoal: null, planLevel: 1, levelSnoozeAt: 0, lastBackupAt: 0 },
       days: {},
       favorites: [],
       recents: [],
@@ -99,6 +99,8 @@
       if (level >= 1 && level <= 5) data.settings.planLevel = Math.round(level);
       const snooze = Number(raw.settings.levelSnoozeAt);
       if (snooze > 0) data.settings.levelSnoozeAt = Math.round(snooze);
+      const backed = Number(raw.settings.lastBackupAt);
+      if (backed > 0) data.settings.lastBackupAt = Math.round(backed);
     }
     if (raw.days && typeof raw.days === "object") data.days = raw.days;
     if (Array.isArray(raw.favorites)) data.favorites = raw.favorites;
@@ -193,12 +195,7 @@
       if (food.organic) item.organic = true;
       if (food.ingredients) item.ingredients = String(food.ingredients).slice(0, 400);
       if (food.manualNutrients && typeof food.manualNutrients === "object") {
-        const manual = {};
-        ["fat", "sat", "fiber", "added", "na"].forEach((key) => {
-          const n = Number(food.manualNutrients[key]);
-          if (Number.isFinite(n)) manual[key] = n;
-        });
-        if (Object.keys(manual).length) item.manualNutrients = manual;
+        item.manualNutrients = copyManual(food.manualNutrients);
       }
       this.data.days[date].foods.push(item);
       this._touchRecent(item);
@@ -227,11 +224,7 @@
       if (patch.organic != null) item.organic = !!patch.organic;
       if (patch.ingredients != null) item.ingredients = String(patch.ingredients).slice(0, 400);
       if (patch.manualNutrients) {
-        const manual = {};
-        ["fat", "sat", "fiber", "added", "na"].forEach((key) => {
-          const n = Number(patch.manualNutrients[key]);
-          if (Number.isFinite(n)) manual[key] = n;
-        });
+        const manual = copyManual(patch.manualNutrients);
         if (Object.keys(manual).length) item.manualNutrients = manual;
         else delete item.manualNutrients;
       }
@@ -716,7 +709,18 @@
     [63, "D"],
     [60, "D-"],
   ];
-  const ADDITIVE_RE = /high fructose|hydrogenated|artificial|maltodextrin|\bmsg\b|monosodium glutamate|red 40|yellow 5|yellow 6|blue 1|blue 2|sucralose|aspartame|acesulfame|saccharin|sodium benzoate|potassium sorbate|\bbha\b|\bbht\b|polysorbate|carrageenan|\bdatem\b|interesterified|sodium nitrite|sodium nitrate/i;
+  const ADDITIVE_RE = /high fructose|hydrogenated|artificial|maltodextrin|\bmsg\b|monosodium glutamate|red 40|yellow 5|yellow 6|blue 1|blue 2|sucralose|aspartame|acesulfame|saccharin|sodium benzoate|potassium sorbate|\bbha\b|\bbht\b|polysorbate|carrageenan|\bdatem\b|interesterified|sodium nitrite|sodium nitrate|caramel color|natural flavor/i;
+  const ADDED_SUGAR_RE = /\b(sugar|syrup|dextrose|maltose|fructose|honey|molasses|cane juice|fruit juice concentrate)\b/i;
+  const SEED_OIL_RE = /soybean oil|canola oil|rapeseed|corn oil|cottonseed|sunflower oil|safflower oil|grapeseed|rice bran oil|vegetable oil/i;
+  const MANUAL_KEYS = ["fat", "sat", "trans", "carb", "fiber", "sugar", "added", "na", "chol"];
+  function copyManual(source) {
+    const manual = {};
+    MANUAL_KEYS.forEach((key) => {
+      const n = Number(source[key]);
+      if (Number.isFinite(n)) manual[key] = n;
+    });
+    return manual;
+  }
 
   let nutritionByName = {};
   let foodByName = new Map();
@@ -919,6 +923,9 @@
     if (ingredients) {
       const list = ingredients.split(/[,;\n]/).map((part) => part.trim()).filter(Boolean);
       const additives = list.filter((part) => ADDITIVE_RE.test(part)).length;
+      const sugars = list.filter((part) => ADDED_SUGAR_RE.test(part) && !ADDITIVE_RE.test(part)).length;
+      const seedOils = list.filter((part) => SEED_OIL_RE.test(part)).length;
+      cleanReasons.push("Ingredient list has " + list.length + (list.length === 1 ? " item." : " items."));
       if (list.length && list.length <= 3 && !additives) {
         clean += 6;
         cleanReasons.push("The ingredient list is short.");
@@ -928,8 +935,18 @@
       }
       if (additives) {
         clean -= Math.min(18, additives * 6);
-        cleanReasons.push("The ingredient list includes additives.");
+        cleanReasons.push("The ingredient list includes additives, colors, or sweeteners.");
       }
+      if (sugars) {
+        clean -= Math.min(12, sugars * 4);
+        cleanReasons.push("The ingredient list includes added sugars.");
+      }
+      if (seedOils) {
+        clean -= Math.min(8, seedOils * 4);
+        cleanReasons.push("The ingredient list includes a seed oil.");
+      }
+      if (input.nova === 4) cleanReasons.push("Open Food Facts or the name marks this as ultra-processed (NOVA 4).");
+      else if (input.nova) cleanReasons.push("Processing group NOVA " + input.nova + ".");
     } else if (input.simple) {
       clean += 6;
       cleanReasons.push("It is a single food, not a blend.");
@@ -962,6 +979,14 @@
         name: food.restaurant + " " + food.name,
         kcal: food.calories,
         pro: food.protein,
+        fat: food.fat,
+        sat: food.sat,
+        trans: food.trans,
+        carb: food.carb,
+        fiber: food.fiber,
+        sugar: food.sugar,
+        na: food.na,
+        chol: food.chol,
         nova: restaurantNova(food.name),
         how: "restaurant",
         simple: false,
@@ -1024,17 +1049,22 @@
     }
     if (food.manualNutrients) {
       const manual = food.manualNutrients;
+      const restaurantLike = /culver|braum|chipotle|panera/.test(String(food.name || "").toLowerCase());
       return scoreFood({
         name: food.name,
         kcal: numOrZero(food.calories),
         pro: numOrZero(food.protein),
         fat: manual.fat,
         sat: manual.sat,
+        trans: manual.trans,
+        carb: manual.carb,
         fiber: manual.fiber,
+        sugar: manual.sugar,
         added: manual.added,
         na: manual.na,
-        nova: novaFromName(food.name),
-        how: "name",
+        chol: manual.chol,
+        nova: restaurantLike ? restaurantNova(food.name) : novaFromName(food.name),
+        how: restaurantLike ? "restaurant" : "name",
         simple: false,
         organic: !!food.organic,
         ingredients: food.ingredients || "",
@@ -1076,7 +1106,7 @@
       <p><strong>Nutrient score.</strong> Published numbers are compared per calorie. Protein and fiber raise it. Saturated fat, sodium, added sugar, and trans fat lower it. Potassium, calcium, iron, and vitamin D can raise it a little when they are high for the calories. A missing number is skipped. It is not treated as zero. Cholesterol is shown and not scored. Fiber is skipped when a food is almost all protein or fat, so chicken is not punished for having no fiber. Total sugar in fruit and milk is not penalized. Only published added sugar is.</p>
       <p><strong>Clean score.</strong> Whole foods start at 90. Culinary ingredients such as oil, butter, and sugar start at 72. Processed foods such as cheese, bread, and cured meat start at 56. Ultra-processed foods such as soda, chips, and fast food start at 30. A single food or a short ingredient list adds 6. A long list or additives such as hydrogenated oil, artificial sweeteners, artificial colors, or high-fructose corn syrup lowers it. Marking a food organic adds 8 points to this score only. USDA generic foods are not assumed to be organic.</p>
       <p><strong>Letter.</strong> 97 A+, 93 A, 90 A-, 87 B+, 83 B, 80 B-, 77 C+, 73 C, 70 C-, 67 D+, 63 D, 60 D-, and below 60 is F. When only a few nutrients are on file, the letter leans toward the clean score (40% nutrient, 60% clean). Otherwise the two scores count equally.</p>
-      <p>A day’s grade is the calorie-weighted average of what you logged. Items under 20 calories still count a little. A meal is the calorie-weighted average of its foods. Restaurant items use the chain’s published calories and protein. Other restaurant nutrients stay blank.</p>`;
+      <p>A day’s grade is the calorie-weighted average of what you logged. Items under 20 calories still count a little. A meal is the calorie-weighted average of its foods. Restaurant items use the chain’s published panel. A nutrient the chain did not publish stays blank and is not treated as zero. Prepared restaurant food is scored as ultra-processed unless it is a plain side, milk, coffee, tea, or fruit.</p>`;
   }
 
   let restaurantsCache = null;
@@ -1346,7 +1376,8 @@
       protein: round1(protein || 0),
       grams: Math.round(gramsEach),
       serving: serving || "1 serving",
-      ingredients: product.ingredients_text ? String(product.ingredients_text).slice(0, 400) : "",
+      ingredients: product.ingredients_text ? String(product.ingredients_text).slice(0, 800) : "",
+      organic: Array.isArray(product.labels_tags) && product.labels_tags.some((tag) => /organic/i.test(String(tag))),
       nut: {
         src: "off",
         fdc: "",
@@ -1539,7 +1570,7 @@
       const url =
         "https://world.openfoodfacts.org/cgi/search.pl?search_terms=" +
         encodeURIComponent(query) +
-        "&search_simple=1&action=process&json=1&page_size=8&fields=code,product_name,brands,nutriments,serving_size,serving_quantity,ingredients_text,nova_group&" +
+        "&search_simple=1&action=process&json=1&page_size=8&fields=code,product_name,brands,nutriments,serving_size,serving_quantity,ingredients_text,nova_group,labels_tags&" +
         OFF_QUERY;
       const res = await fetch(url, { headers: { Accept: "application/json" } });
       if (seq !== searchSeq) return;
@@ -1578,7 +1609,7 @@
       const url =
         "https://world.openfoodfacts.org/api/v2/product/" +
         encodeURIComponent(code) +
-        ".json?fields=code,product_name,brands,nutriments,serving_size,serving_quantity,ingredients_text,nova_group,status&" +
+        ".json?fields=code,product_name,brands,nutriments,serving_size,serving_quantity,ingredients_text,nova_group,labels_tags,status&" +
         OFF_QUERY;
       const res = await fetch(url, { headers: { Accept: "application/json" } });
       if (!res.ok) throw new Error("barcode");
@@ -1607,6 +1638,7 @@
         perProtein: Number(base.protein) || 0,
         servingLabel: serving,
         units,
+        menu: base.menu || null,
       };
       const name = document.getElementById("food-name");
       const box = document.getElementById("serving-adjust");
@@ -1636,7 +1668,15 @@
     const food = { name: base.name, kcal100, pro100, portions: portions || [] };
     const units = unitsFor(food);
     const cached = findCachedFood(food.name);
-    ui.foodBase = { name: food.name, kcal100, pro100, units, nut: (cached && cached.nut) || base.nut || null };
+    ui.foodBase = { name: food.name, kcal100, pro100, units, nut: (cached && cached.nut) || base.nut || null, ingredients: base.ingredients || "" };
+    if (base.organic) {
+      const organicBox = document.getElementById("food-organic");
+      if (organicBox) organicBox.checked = true;
+    }
+    if (base.ingredients) {
+      const ingredientBox = document.getElementById("food-ingredients");
+      if (ingredientBox && !ingredientBox.value) ingredientBox.value = base.ingredients;
+    }
     const name = document.getElementById("food-name");
     const box = document.getElementById("serving-adjust");
     const unitSelect = document.getElementById("food-unit");
@@ -1709,9 +1749,23 @@
   function paintPickGrade() {
     const el = document.getElementById("pick-grade");
     if (!el || !ui.foodBase) return;
+    const menu = ui.foodBase.menu || {};
     const food = ui.foodBase.fixed
-      ? { restaurant: "", name: ui.foodBase.name, calories: ui.foodBase.perCalories, protein: ui.foodBase.perProtein }
-      : { name: ui.foodBase.name, kcal100: ui.foodBase.kcal100, pro100: ui.foodBase.pro100, nut: ui.foodBase.nut };
+      ? {
+          restaurant: "",
+          name: ui.foodBase.name,
+          calories: ui.foodBase.perCalories,
+          protein: ui.foodBase.perProtein,
+          fat: menu.fat,
+          sat: menu.sat,
+          trans: menu.trans,
+          carb: menu.carb,
+          fiber: menu.fiber,
+          sugar: menu.sugar,
+          na: menu.na,
+          chol: menu.chol,
+        }
+      : { name: ui.foodBase.name, kcal100: ui.foodBase.kcal100, pro100: ui.foodBase.pro100, nut: ui.foodBase.nut, ingredients: ui.foodBase.ingredients || "" };
     if (ui.foodBase.fixed) food.restaurant = ui.foodBase.restaurant || "Menu";
     const grade = gradeFoodRecord(food, { organic: formOrganic(), ingredients: formIngredients() });
     el.textContent =
@@ -1728,6 +1782,12 @@
     const unit = selectedUnit();
     if (!(amount > 0) || !unit) return null;
     if (ui.foodBase.fixed) {
+      const menu = ui.foodBase.menu || {};
+      const manual = {};
+      ["fat", "sat", "trans", "carb", "fiber", "sugar", "na", "chol"].forEach((key) => {
+        const n = Number(menu[key]);
+        if (Number.isFinite(n)) manual[key] = round1(n * amount);
+      });
       return {
         name: ui.foodBase.name,
         amount,
@@ -1739,6 +1799,7 @@
         protein: round1(ui.foodBase.perProtein * amount),
         organic: formOrganic(),
         ingredients: formIngredients(),
+        manualNutrients: Object.keys(manual).length ? manual : null,
       };
     }
     const grams = unit.gramsEach * amount;
@@ -2169,12 +2230,24 @@
     const grade = gradeFoodRecord(model.food, { organic: model.organic, ingredients: model.ingredients });
     if (model.food.restaurant) {
       const place = (restaurantsCache || []).find((restaurant) => restaurant.name === model.food.restaurant);
-      return `<div class="food-detail-inner">
+      return `<div class="food-detail-inner" data-testid="restaurant-detail">
         <h3>${esc(model.food.restaurant)} ${esc(model.food.name)}</h3>
-        <p class="hint">${esc(model.food.serving || "1 serving")}${place ? " · " + esc(place.source) : ""}</p>
+        <p class="hint">${esc(model.food.serving || "1 serving")}${place && place.asOf ? " · guide " + esc(place.asOf) : ""}</p>
         ${explainBlock(grade)}
-        <div class="nutri-table">${nutrientRows({ kcal: model.food.calories, pro: model.food.protein }, null)}</div>
-        <p class="hint">Calories and protein are the chain’s published serving. Other nutrients were not stored, so they stay blank.</p>
+        <div class="nutri-table">${nutrientRows({
+          kcal: model.food.calories,
+          pro: model.food.protein,
+          fat: model.food.fat,
+          sat: model.food.sat,
+          trans: model.food.trans,
+          carb: model.food.carb,
+          fiber: model.food.fiber,
+          sugar: model.food.sugar,
+          na: model.food.na,
+          chol: model.food.chol,
+        }, null)}</div>
+        <p class="hint">${place ? esc(place.nutritionNote || "Published by the chain.") : ""}</p>
+        ${place && place.source ? `<p class="hint">${esc(place.source)}</p>` : ""}
       </div>`;
     }
     const per = basisFromCached(model.food);
@@ -2540,9 +2613,10 @@
           <h3 style="margin:0 0 8px">How grades work</h3>
           ${gradeHelpHtml()}
         </section>
-        <section class="settings-card">
+        <section class="settings-card" data-testid="backup-card">
           <h3 style="margin:0 0 8px">Backup</h3>
-          <p class="hint">All data stays on this device. Export a JSON backup regularly and keep it in Files or iCloud so it isn’t lost.</p>
+          <p class="hint">Logged meals, weight, and workouts stay in this device’s local storage. Export a JSON file to Files or iCloud.</p>
+          <p data-testid="backup-status">${backupStatusText(s)}</p>
           <div class="stack" style="margin-top:12px">
             <button type="button" class="btn primary" data-act="export">Export backup</button>
             <button type="button" class="btn secondary" data-act="import">Import backup</button>
@@ -2770,8 +2844,27 @@
       ["365", "1 year"],
       ["all", "All"],
     ];
+    const todayEntry = store.data.weights[today] || null;
     return `
       <h2 class="page-title">Weight</h2>
+      <section class="chart-card" data-testid="weight-entry">
+        <h3>Log weight</h3>
+        <form id="weight-form" class="stack">
+          <div class="field">
+            <label for="weight-date">Date</label>
+            <input id="weight-date" type="date" required max="${esc(today)}" value="${esc(today)}" />
+          </div>
+          <div class="field">
+            <label for="weight-lb">Weight (lb)</label>
+            <input id="weight-lb" type="number" inputmode="decimal" min="1" max="800" step="0.1" required value="${todayEntry ? esc(fmtLb(todayEntry.lb)) : ""}" />
+          </div>
+          <div class="field">
+            <label for="weight-note">Note</label>
+            <input id="weight-note" maxlength="140" placeholder="Morning, after coffee…" value="${esc(todayEntry ? todayEntry.note || "" : "")}" />
+          </div>
+          <button type="submit" class="btn primary">Save weight</button>
+        </form>
+      </section>
       <div class="stats">
         <div class="stat"><div class="k">Current</div><div class="v" data-testid="weight-current">${latest ? esc(fmtLb(latest.lb)) + " lb" : "—"}</div></div>
         <div class="stat"><div class="k">Change in view</div><div class="v" data-testid="weight-change">${esc(changeText)}</div></div>
@@ -2810,8 +2903,7 @@
               .join("")}</div>`
           : `<div class="empty" data-testid="weight-empty"><strong>No weigh-ins yet</strong>One entry per day. Logging the same day again replaces it.</div>`
       }
-      <div style="height:12px"></div>
-      <button type="button" class="btn primary" data-act="log-weight">Log weight</button>`;
+    `;
   }
 
   function setTabSelected() {
@@ -3049,7 +3141,17 @@
     store.setGoals(cal.value, pro.value, weight ? weight.value : store.data.settings.weightGoal);
   }
 
+  function backupStatusText(settings) {
+    const last = Number(settings && settings.lastBackupAt);
+    if (!(last > 0)) return "Last backup: never. A backup every couple of weeks keeps the log safe.";
+    const days = Math.floor((Date.now() - last) / 86400000);
+    const when = new Date(last).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+    if (days >= 14) return "Last backup: " + when + ". That was " + days + " days ago. A fresh export would be wise.";
+    return "Last backup: " + when + ".";
+  }
   async function exportBackup() {
+    store.data.settings.lastBackupAt = Date.now();
+    store.save();
     const payload = JSON.stringify(store.exportPayload(), null, 2);
     const filename = `fittrack-backup-${dateKey()}.json`;
     const blob = new Blob([payload], { type: "application/json" });
@@ -3057,6 +3159,7 @@
     try {
       if (navigator.canShare && navigator.canShare({ files: [file] })) {
         await navigator.share({ files: [file], title: "FitTrack backup" });
+        render();
         toast("Backup shared");
         return;
       }
@@ -3071,6 +3174,7 @@
     a.click();
     a.remove();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
+    render();
     toast("Backup downloaded");
   }
 
@@ -3084,6 +3188,8 @@
         if (!obj.settings && !obj.days && !obj.workouts) throw new Error("Not a FitTrack backup");
         if (!confirm("Replace all FitTrack data on this device with the backup?")) return;
         store.importPayload(obj);
+        store.data.settings.lastBackupAt = Date.now();
+        store.save();
         ui.date = dateKey();
         ui.workoutId = null;
         closeSheet();
@@ -3205,12 +3311,16 @@
     }
     if (act === "pick-food") {
       if (btn.getAttribute("data-fixed") === "1") {
+        const label = btn.getAttribute("data-name");
+        const hit = (ui.restaurantHits || []).find((item) => item.restaurant + " " + item.name === label);
         applyFoodBase({
           fixed: true,
-          name: btn.getAttribute("data-name"),
+          name: label,
+          restaurant: hit ? hit.restaurant : "Menu",
           calories: Number(btn.getAttribute("data-cal")),
           protein: Number(btn.getAttribute("data-pro")),
           serving: btn.getAttribute("data-serving") || "1 serving",
+          menu: hit,
         });
         return;
       }
@@ -3278,7 +3388,17 @@
       return;
     }
     if (act === "edit-weight") {
-      openWeightSheet(btn.getAttribute("data-date"));
+      const date = btn.getAttribute("data-date");
+      const dateEl = document.getElementById("weight-date");
+      if (date && dateEl) {
+        dateEl.value = date;
+        dateEl.dispatchEvent(new Event("input", { bubbles: true }));
+        const lb = document.getElementById("weight-lb");
+        if (lb) lb.focus();
+        dateEl.scrollIntoView({ block: "center" });
+        return;
+      }
+      openWeightSheet(date);
       return;
     }
     if (act === "delete-weight") {
@@ -3519,7 +3639,7 @@
         }
         const line = currentQty();
         if (line) store.rememberFoodUse(line.name, { amount: line.amount, unit: line.unit });
-        const manual = line ? null : readManualNutrients();
+        const manual = line && line.manualNutrients ? line.manualNutrients : line ? null : readManualNutrients();
         store.addFood(ui.date, {
           name: form.name.value,
           calories: form.calories.value,
@@ -3582,6 +3702,10 @@
     }
     if (el.id === "food-servings") {
       refreshQty();
+      return;
+    }
+    if (el.id === "food-ingredients") {
+      paintPickGrade();
       return;
     }
     if (el.id === "weight-date") {
@@ -3657,6 +3781,9 @@
     ensurePlans().catch(() => {});
     ensureDemos().catch(() => {});
     ensureRestaurants().catch(() => {});
+    if (navigator.storage && navigator.storage.persist) {
+      navigator.storage.persist().catch(() => {});
+    }
     if ("serviceWorker" in navigator) {
       // Relative script and scope follow the page, so /Fittrack/ on GitHub Pages
       // registers https://…/Fittrack/sw.js with scope https://…/Fittrack/.

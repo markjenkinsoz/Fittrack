@@ -699,6 +699,99 @@
           "cue": "Breathe, then switch sides."
         }
       ]
+    },
+    "kb-swing": {
+      "title": "Kettlebell swing",
+      "image": "images/exercises/kb-swing-1.jpg",
+      "webp": "images/exercises/kb-swing-1.webp",
+      "frames": [
+        {
+          "image": "images/exercises/kb-swing-1.jpg",
+          "webp": "images/exercises/kb-swing-1.webp",
+          "cue": "Hike the bell back. Soft knees, light bell."
+        },
+        {
+          "image": "images/exercises/kb-swing-2.jpg",
+          "webp": "images/exercises/kb-swing-2.webp",
+          "cue": "Snap the hips. The bell stays close."
+        },
+        {
+          "image": "images/exercises/kb-swing-3.jpg",
+          "webp": "images/exercises/kb-swing-3.webp",
+          "cue": "Let it float to chest height. Stand tall."
+        },
+        {
+          "image": "images/exercises/kb-swing-4.jpg",
+          "webp": "images/exercises/kb-swing-4.webp",
+          "cue": "Hinge as it swings back. Exhale. No hard brace."
+        }
+      ]
+    },
+    "step-up": {
+      "title": "Dumbbell step-up",
+      "image": "images/exercises/step-up-1.jpg",
+      "webp": "images/exercises/step-up-1.webp",
+      "frames": [
+        {
+          "image": "images/exercises/step-up-1.jpg",
+          "webp": "images/exercises/step-up-1.webp",
+          "cue": "One foot on the bench. Tall chest."
+        },
+        {
+          "image": "images/exercises/step-up-2.jpg",
+          "webp": "images/exercises/step-up-2.webp",
+          "cue": "Push through the foot on the bench. Stay tall."
+        },
+        {
+          "image": "images/exercises/step-up-3.jpg",
+          "webp": "images/exercises/step-up-3.webp",
+          "cue": "Step down with control. Bells stay at your sides."
+        }
+      ]
+    },
+    "db-raise": {
+      "title": "Seated dumbbell raise",
+      "image": "images/exercises/db-raise-1.jpg",
+      "webp": "images/exercises/db-raise-1.webp",
+      "frames": [
+        {
+          "image": "images/exercises/db-raise-1.jpg",
+          "webp": "images/exercises/db-raise-1.webp",
+          "cue": "Sit tall. Bells rest beside the hips."
+        },
+        {
+          "image": "images/exercises/db-raise-2.jpg",
+          "webp": "images/exercises/db-raise-2.webp",
+          "cue": "Lift the bells out toward shoulder height."
+        },
+        {
+          "image": "images/exercises/db-raise-3.jpg",
+          "webp": "images/exercises/db-raise-3.webp",
+          "cue": "Lower them with control. Stay tall."
+        }
+      ]
+    },
+    "sa-press": {
+      "title": "Single-arm dumbbell bench press",
+      "image": "images/exercises/sa-press-1.jpg",
+      "webp": "images/exercises/sa-press-1.webp",
+      "frames": [
+        {
+          "image": "images/exercises/sa-press-1.jpg",
+          "webp": "images/exercises/sa-press-1.webp",
+          "cue": "One bell at the chest. The other hand rests on the ribs."
+        },
+        {
+          "image": "images/exercises/sa-press-2.jpg",
+          "webp": "images/exercises/sa-press-2.webp",
+          "cue": "Press that one bell up. Feet stay down."
+        },
+        {
+          "image": "images/exercises/sa-press-3.jpg",
+          "webp": "images/exercises/sa-press-3.webp",
+          "cue": "Lower it to the chest. Do not bounce."
+        }
+      ]
     }
   },
   "names": {
@@ -783,6 +876,18 @@
     "Supine knee rocks": "knee-rock",
     "Cat-cow": "cat-cow",
     "Thoracic reach": "thoracic",
-    "Side-lying wind-down": "side-lie"
+    "Side-lying wind-down": "side-lie",
+    "Kettlebell swing": "kb-swing",
+    "Kettlebell swing, shorter": "kb-swing",
+    "Kettlebell swing, a little higher": "kb-swing",
+    "Dumbbell step-up": "step-up",
+    "Step-up, hands on hips": "step-up",
+    "Dumbbell step-up, slower lower": "step-up",
+    "Seated dumbbell raise": "db-raise",
+    "Seated dumbbell raise, light": "db-raise",
+    "Seated dumbbell raise, pause": "db-raise",
+    "Single-arm dumbbell bench press": "sa-press",
+    "Single-arm floor press": "sa-press",
+    "Single-arm dumbbell bench press, pause": "sa-press"
   }
 }
