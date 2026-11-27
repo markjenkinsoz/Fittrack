@@ -129,6 +129,23 @@
         {"name": "Side-lying wind-down", "role": "cooldown", "mode": "hold", "seconds": 30, "cue": "Lie on your side, top knee bent on the mat, breathe. Then switch."},
         {"name": "Quiet breathing", "role": "cooldown", "mode": "minutes", "minutes": 3, "cue": "On your back, knees bent. Easy belly breaths, not a hard brace."}
       ]
+    },
+    {
+      "id": "level-2",
+      "plan": "Level 2 strength",
+      "name": "Level 2 strength",
+      "blurb": "When the beginner sessions feel ordinary. A light kettlebell swing, a step-up, a one-arm press, and a seated raise. Keep the load light and do not brace hard.",
+      "equipment": "Light kettlebell, dumbbells, bench, mat",
+      "exercises": [
+        {"name": "Easy bike spin", "role": "warmup", "mode": "minutes", "minutes": 4, "cue": "Easy recumbent spin. You should talk in full sentences."},
+        {"name": "Hip hinge drill", "role": "warmup", "mode": "fixed", "sets": 1, "reps": 8, "cue": "Hands on the thighs, push the hips back, then stand. No load."},
+        {"name": "Kettlebell swing", "role": "main", "mode": "strength", "regression": "Kettlebell swing, shorter", "progression": "Kettlebell swing", "advanced": "Kettlebell swing, a little higher", "cue": "Light bell only. Hike it back, snap the hips, and let it float to chest height. Exhale on the way up. Stop if the abdomen pulls. No hard brace."},
+        {"name": "Dumbbell step-up", "role": "main", "mode": "strength", "regression": "Step-up, hands on hips", "progression": "Dumbbell step-up", "advanced": "Dumbbell step-up, slower lower", "cue": "Whole foot on the bench. Stand tall. Use a low bench if the knee or abdomen complains."},
+        {"name": "Single-arm dumbbell bench press", "role": "main", "mode": "strength", "regression": "Single-arm floor press", "progression": "Single-arm dumbbell bench press", "advanced": "Single-arm dumbbell bench press, pause", "cue": "One light bell. The free hand rests on the ribs. Feet stay down. Do not hold the breath."},
+        {"name": "Seated dumbbell raise", "role": "main", "mode": "strength", "regression": "Seated dumbbell raise, light", "progression": "Seated dumbbell raise", "advanced": "Seated dumbbell raise, pause", "cue": "Sit tall so the low back does not have to work. Lift only to shoulder height."},
+        {"name": "Dead bug", "role": "main", "mode": "strength", "regression": "Heel slide", "progression": "Dead bug, short lever", "advanced": "Dead bug, opposite arm and leg", "cue": "Small range. Low back stays gently down. Stop if the incision pulls."},
+        {"name": "Easy bike cool-down", "role": "cooldown", "mode": "minutes", "minutes": 3, "cue": "Very easy spin. Breathe quietly."}
+      ]
     }
   ]
 }

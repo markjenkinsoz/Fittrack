@@ -1,7 +1,7 @@
 /* FitTrack service worker — network first, cache fallback for offline use.
    Asset URLs are relative to this script (the app directory), not the domain root,
    so the same list works at /Fittrack/ on GitHub Pages. */
-const CACHE = "fittrack-v9";
+const CACHE = "fittrack-v10";
 const ASSETS = [
   "./",
   "./index.html",
@@ -180,6 +180,32 @@ const ASSETS = [
   "./images/exercises/thoracic-2.webp",
   "./images/exercises/thoracic-3.jpg",
   "./images/exercises/thoracic-3.webp",
+  "./images/exercises/kb-swing-1.jpg",
+  "./images/exercises/kb-swing-1.webp",
+  "./images/exercises/kb-swing-2.jpg",
+  "./images/exercises/kb-swing-2.webp",
+  "./images/exercises/kb-swing-3.jpg",
+  "./images/exercises/kb-swing-3.webp",
+  "./images/exercises/kb-swing-4.jpg",
+  "./images/exercises/kb-swing-4.webp",
+  "./images/exercises/step-up-1.jpg",
+  "./images/exercises/step-up-1.webp",
+  "./images/exercises/step-up-2.jpg",
+  "./images/exercises/step-up-2.webp",
+  "./images/exercises/step-up-3.jpg",
+  "./images/exercises/step-up-3.webp",
+  "./images/exercises/db-raise-1.jpg",
+  "./images/exercises/db-raise-1.webp",
+  "./images/exercises/db-raise-2.jpg",
+  "./images/exercises/db-raise-2.webp",
+  "./images/exercises/db-raise-3.jpg",
+  "./images/exercises/db-raise-3.webp",
+  "./images/exercises/sa-press-1.jpg",
+  "./images/exercises/sa-press-1.webp",
+  "./images/exercises/sa-press-2.jpg",
+  "./images/exercises/sa-press-2.webp",
+  "./images/exercises/sa-press-3.jpg",
+  "./images/exercises/sa-press-3.webp",
 ];
 
 const SHELL = ASSETS.filter((url) => !url.includes("/images/"));
